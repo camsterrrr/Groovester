@@ -1,16 +1,36 @@
-from dataclasses import dataclass
+from dataclasses import dataclass # Used to avoid PyLint warnings.
 
 
 @dataclass(frozen=True)
-class ClientMessages :
-	_helpPlayCommand: str = (
-	    "!play usage:\t !play *URL to YouTube URL*\n"
-	    + "\tGroovester will download YouTube video and play it in a voice channel!"
+class ClientHelpMessages :
+	_helpJoinCmd: str = (
+		"!join usage:\t !join \n"
+		+ "\tGroovester will join the voice channel that the message author is connected to!"
 	)
+	_helpLeaveCmd: str = (
+		"!leave usage: \t !leave \n"
+		+ "\t Groovester will leave the voice channel it is currently connected to!"
+	)
+	_helpPlayCmd: str = (
+		"!play usage:\t !play *URL to YouTube URL*\n"
+		+ "\tGroovester will download YouTube video and play it in a voice channel!"
+	)
+	_sendJoinCmdSuccessfulVoiceClientConnect: str = (
+		"Groovester successfully joined the voice channel!"
+		+ " Here are some useful commands to get you started:\n"
+		+ _helpJoinCmd
+		+ _helpLeaveCmd
+		+ _helpPlayCmd
+	)
+
 
 
 @dataclass(frozen=True)
 class DebugMessages :
+	_threadGivingUpTimeSlice: str = (
+		"Thread is giving up it's time slice, "
+	)
+
 	_logActiveReadersOrWriters: str = (
 		_threadGivingUpTimeSlice	
 		+ "Groovester has active an reader or writer thread."
@@ -55,13 +75,10 @@ class DebugMessages :
 		_threadGivingUpTimeSlice	
 		+ "waiting for Groovester's voice client to instantiate."
 	)
-	_threadGivingUpTimeSlice: str = (
-		"Thread is giving up it's time slice, "
-	)
 
 
 @dataclass(frozen=True)
-class ErrorMessages :
+class ErrorMessages:
 	_exceptionClientRun: str = (
 		"An error occurred while trying to start the Groovester client:"
 	)
@@ -77,76 +94,70 @@ class ErrorMessages :
 	_exceptionUnableToRemoveFileFromFileSystem: str = (
 		"Exception thrown while trying to delete the audio file from the file system: "
 	)
+	_failedToPlayAudio: str = (
+		"Groovester failed to play audio! "
+	)
 	_logAlreadyPlayingAudio: str = (
-    	_failedToPlayAudio
-        + "Groovester is already playing audio!"
-    )
-    _logJoinCmdAuthorNotInVoiceChannel: str = (
+		_failedToPlayAudio
+		+ "Groovester is already playing audio!"
+	)
+	_logJoinCmdAuthorNotInVoiceChannel: str = (
 		"!join failed, message author is not in a voice channel."
-    )
-    _logLeaveCmdNoActiveVoiceChannel: str = (
-    	"!leave failed, Groovester is not in a voice channel."
-    )
+	)
+	_logLeaveCmdNoActiveVoiceChannel: str = (
+		"!leave failed, Groovester is not in a voice channel."
+	)
 	_logNotConnectedToVoiceChannel: str = (
 		_failedToPlayAudio
-        + "Groovester has not connected to a voice channel yet!"
-    )
+		+ "Groovester has not connected to a voice channel yet!"
+	)
 	_sendJoinCmdNoActiveVoiceChannel: str = (
-	    "Incorrect !join usage...\n"
-	    + "\tYou are not currently in a voice channel."
+		"Incorrect !join usage...\n"
+		+ "\tYou are not currently in a voice channel."
 	)
 	_sendLeaveCmdNoActiveVoiceChannel: str = (
-	    "Incorrect !leave usage...\n"
-	    + "\tGroovester is not actively connected to a voice channel."
+		"Incorrect !leave usage...\n"
+		+ "\tGroovester is not actively connected to a voice channel."
 	)
 	_sendPlayCmdIncorrectDomain: str = (
-	    "Incorrect !play usage...\n"
-	    + "\tPlease enter a valid domain."
+		"Incorrect !play usage...\n"
+		+ "\tPlease enter a valid domain."
 	)
 	_sendPlayCmdIncorrectParameters: str = (
-	    "Incorrect !play usage...\n"
-	    + "\t!play *URL to YouTube video*"
+		"Incorrect !play usage...\n"
+		+ "\t!play *URL to YouTube video*"
 	)
 	_sendPlayCmdUnreachableDomain: str = (
-	    "Incorrect !play usage...\n"
-	    + "\tEnter a valid domain."
+		"Incorrect !play usage...\n"
+		+ "\tEnter a valid domain."
 	)
 	_sendPlayCmdFailedToDownloadAudio: str = (
 		"Groovester failed to download the requested video!"
 	)
 
-	#! Todo: Is this being used?
-	_failedToPlayAudio: str = (
-		"Groovester failed to play audio! "
-	)
 
 @dataclass(frozen=True)
-class InfoMessages :
+class InfoMessages:
 	_logGroovesterStartedSuccessfully: str = (
 		"Groovester started Successfully!"
 	)
 	_logNewGroovesterInstance: str = (
 		"\n===================================================" 
-        + "\n\t\t\tNew Groovester instance started!" 
-        + "\n==================================================="
-    )
-    _logPlaySuccessfulyDownloadedVideo: str = (
+		+ "\n\t\t\tNew Groovester instance started!" 
+		+ "\n==================================================="
+	)
+	_logPlaySuccessfulyDownloadedVideo: str = (
 		"!play successfully downloaded the following video:" 
 	)
-	_sendJoinCmdSuccessfulVoiceClientConnect: str = (
-		"Groovester successfully joined the voice channel!"
-        + " Here are some useful commands to get you started: "
-        #! Todo: Send a list of useful commands to the text channel.
-    )
-    _sendStopCmdConditionsNotMet: str = (
+	_sendStopCmdConditionsNotMet: str = (
 		"You must issue \"!join\" in order to use this command!"
 	)
 	_sendLeaveCmdLeaveVoiceChannel: str = (
 		"Bye, bye! :("
 	)
-    _sendStopCmdNotInVoiceChannel: str = (
-    	"Groovester is not in a voice channel!"
-    )
-    _sendStopCmdNotPlayingAudio: str = (
-    	"Groovester is not playing audio!"
-    )
+	_sendStopCmdNotInVoiceChannel: str = (
+		"Groovester is not in a voice channel!"
+	)
+	_sendStopCmdNotPlayingAudio: str = (
+		"Groovester is not playing audio!"
+	)
