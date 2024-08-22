@@ -5,20 +5,30 @@ from dataclasses import dataclass # Used to avoid PyLint warnings.
 class ClientHelpMessages :
 	_helpJoinCmd: str = (
 		"!join usage:\t !join \n"
-		+ "\tGroovester will join the voice channel that the message author is connected to!"
+		+ "\tGroovester will join the voice channel that the message author is connected to."
 	)
 	_helpLeaveCmd: str = (
-		"!leave usage: \t !leave \n"
-		+ "\t Groovester will leave the voice channel it is currently connected to!"
+		"!leave usage:\t !leave \n"
+		+ "\t Groovester will leave the voice channel it is currently connected to."
 	)
 	_helpPlayCmd: str = (
 		"!play usage:\t !play *URL to YouTube URL*\n"
-		+ "\tGroovester will download YouTube video and play it in a voice channel!"
+		+ "\tGroovester will download YouTube video and play it in a voice channel."
+	)
+	_helpStopCmd: str = (
+		"!stop usage:\t !leave \n"
+		+ "\t Groovester will stop playing audio and leave the voice channel."
 	)
 	_sendJoinCmdSuccessfulVoiceClientConnect: str = (
 		"Groovester successfully joined the voice channel!"
 		+ " Here are some useful commands to get you started:\n"
 		+ _helpJoinCmd
+		+ _helpLeaveCmd
+		+ _helpPlayCmd
+	)
+
+	_helpCmd = (
+		_helpJoinCmd
 		+ _helpLeaveCmd
 		+ _helpPlayCmd
 	)

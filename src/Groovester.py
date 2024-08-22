@@ -114,9 +114,11 @@ class GroovesterEventHandler:
 			return False
 
 		# Check domain is what is expected.
+        #! Todo: There are several YouTube domnains to check for.
 		if not linkToYouTubeVideo.startswith("https://www.youtube.com/"):
 			await message.channel.send(ErrorMessages._sendPlayCmdIncorrectDomain)
 			return False
+
 
 		# Test if the Domain is reachable and valid. (Emphasis on Domain)
 		if not url(linkToYouTubeVideo):
@@ -152,6 +154,10 @@ class GroovesterEventHandler:
 			with self.readerCv:
 				self.readerCv.notify()
 			self.writerCv.notify()
+
+		#! Todo: If Groovester is not already in the voice channel have it connect to the voice channel.
+		if self.voiceClient is None: 
+			await self.joinClientEvent(message)
 
 	#! Todo: I think it would be better to stream the song instead of download it to the filesystem.
 	async def speakInVoiceChannel(self, absPathToVideoToPlay: str):
@@ -208,6 +214,7 @@ class GroovesterEventHandler:
 				return False
 
 			self.voiceClient.stop()
+			self.voiceClient.disconnect()
 
 		else:
 			await channel.send(
