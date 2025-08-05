@@ -33,9 +33,71 @@ Groovester
 
 ## How to Host Groovester Yourself
 
+### Option 1: Docker (Recommended)
+
+The easiest way to run Groovester is using Docker. This method works on Windows, macOS, and Linux.
+
+#### Prerequisites
+- [Docker](https://docs.docker.com/get-docker/) installed on your system
+- [Docker Compose](https://docs.docker.com/compose/install/) (usually included with Docker Desktop)
+
+#### Quick Start with Docker
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/camsterrrr/Groovester.git
+   cd Groovester
+   ```
+
+2. **Set up your Discord bot token**
+   ```bash
+   # Copy the example environment file
+   cp .env.example .env
+   
+   # Edit .env and add your Discord bot token
+   # botToken="your_actual_discord_bot_token_here"
+   ```
+
+3. **Build and run with Docker Compose**
+   ```bash
+   # Build and start the container
+   docker-compose up -d
+   
+   # View logs
+   docker-compose logs -f groovester
+   
+   # Stop the container
+   docker-compose down
+   ```
+
+#### Manual Docker Commands
+
+If you prefer to use Docker directly:
+
+```bash
+# Build the image
+docker build -t groovester .
+
+# Run the container
+docker run -d --name groovester-bot \
+  -e botToken="your_discord_bot_token_here" \
+  -v $(pwd)/downloads:/app/tmp/downloads \
+  -v $(pwd)/logs:/app/logs \
+  groovester
+
+# View logs
+docker logs -f groovester-bot
+
+# Stop and remove the container
+docker stop groovester-bot
+docker rm groovester-bot
+```
+
+### Option 2: Manual Installation (Linux)
+
 Groovester was developed using a Virtual Box virtual machine running Ubuntu 22.04 LTS. If you have a different operating system, or flavor of Linux, only the package manager commands should be different.
 
-If you're on Windows, consider switching operating systems :).
+If you're on Windows, we recommend using the Docker method above.
 
 ### Step 0: Package Setup
 
@@ -49,7 +111,14 @@ Assuming you're using Linux Ubuntu, you can install Python 3 using the package m
 apt install python3
 ```
 
-You can install all of the Python modules via the Python package manager.
+You can install all of the Python modules via the Python package manager using the requirements.txt file:
+
+```bash
+# Install all required Python packages
+pip install -r requirements.txt
+```
+
+Alternatively, you can install them manually:
 
 ```bash
 pip install --upgrade Discord.py pytube python-dotenv validators pynacl ffmpeg		
@@ -162,5 +231,6 @@ pytube.exceptions.RegexMatchError: get_throttling_function_name: could not find 
 ## Contributors
 
 camsterrrr (Oakley.CameronJ@gmail.com) (PGP)
+mdnoyon9758 - Docker containerization, requirements.txt, and documentation improvements
 
 Special thanks to all of the online resources I used while developing this :). There are too many to list, I extend my appreciation either way.

@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  groovester:
+    build: .
+    container_name: groovester-bot
+    environment:
+      - botToken=${BOT_TOKEN}
+    volumes:
+      # Mount downloads directory to persist downloaded files
+      - ./downloads:/app/tmp/downloads
+      # Mount logs directory to persist logs
+      - ./logs:/app/logs
+    restart: unless-stopped
+    # Optional: Add health check
+    healthcheck:
+      test: ["CMD", "python", "-c", "import src.client; print('healthy')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

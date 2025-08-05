@@ -1,0 +1,18 @@
+# Groovester Discord Bot Requirements
+# Core Discord API
+discord.py>=2.3.0
+
+# YouTube video downloading
+pytube>=15.0.0
+
+# Environment variable management
+python-dotenv>=1.0.0
+
+# URL validation
+validators>=0.22.0
+
+# Audio processing (required for Discord voice)
+PyNaCl>=1.5.0
+
+# FFmpeg Python bindings (optional but recommended)
+ffmpeg-python>=0.2.0
