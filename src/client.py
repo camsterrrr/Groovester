@@ -3,25 +3,44 @@ import logging as log
 import os
 from threading import Thread
 
-from discord import Client, DiscordException, Intents
+import discord
 from dotenv import load_dotenv
 
-from src._logging_ import configureProjectLogging
 from src.constants import ClientHelpMessages, DebugMessages, ErrorMessages, InfoMessages
-from src.helpers import setupTmpDirectory
 from src.Groovester import GroovesterEventHandler
 from src.threads import playDownloadedSongViaDiscordAudio
 
 
-# Create Discord client instance.
-intents = Intents.default()
+# Create Discord's client connection object.
+intents = discord.Intents.default()
 intents.message_content = True
-client = Client(intents=intents)
+CLIENT_OBJ = discord.Client(intents=intents)
 
-GROOVESTER_EVENT_HANDLER = None
+# Create instance for custom event handler.
+GROOVESTER_EVENT_HANDLER = GroovesterEventHandler()
 
 
-def runPlaySongsInDiscordAudioThread():
+def create_discord_client_instance() -> discord.Client:
+    """
+        This function is used to instantiate an instance for the Discord 
+            client.
+
+    Returns:
+        Client: Object that represents the applications connection to
+            Discord, and is used interact with various web APIs.
+    """
+    
+    if CLIENT_OBJ:
+        # Retrieve Groovester's API token from the .env file located somewhere in the
+        #   project directory.
+        load_dotenv()
+        CLIENT_OBJ.run(os.getenv("botToken"))
+    else: 
+        log.warn("Discord Client object has not been instantiated! Check logic if this occurs...")
+    
+    return CLIENT_OBJ
+
+def runPlaySongsInDiscordAudioThread() -> None:
     """
     Function used to start a new thread. This was needed because the
         "playDownloadedSongViaDiscordAudio" is asynchronous.
@@ -33,9 +52,12 @@ def runPlaySongsInDiscordAudioThread():
     )
 
 
-@client.event
-async def on_ready():
-    """Prints message when Groovester successfully starts and starts helper threads."""
+@CLIENT_OBJ.event
+async def on_ready() -> None:
+    """
+        Prints message when Groovester successfully starts and starts 
+            helper threads.
+    """
 
     log.info("%s", InfoMessages._logGroovesterStartedSuccessfully)
     print(InfoMessages._logGroovesterStartedSuccessfully)
@@ -48,18 +70,24 @@ async def on_ready():
         playSongsInDiscordAudioThread.start()
     except Exception as err:
         log.error("%s %s", ErrorMessages._exceptionOnReadyChildThread, err)
-        #! Todo: Kill process when this exception is thrown.
+        #! TODO: Kill process when this exception is thrown.
 
     return True
 
 
-@client.event
-async def on_message(message):  # Message procedure
-    """Message procedure for the Discord client."""
+@CLIENT_OBJ.event
+async def on_message(message: discord.message.Message) -> None:
+    """
+        Function that acts as the message procedure for the application.
+            When an event occurs, Groovester will determine how to handle.
+        
+        Args:
+            message: The message that triggered the message procedure.
+    """
 
     # Groovester won't respond to itself.
-    if message.author == client.user:
-        return True
+    if message.author == CLIENT_OBJ.user:
+        return
 
     log.debug("Message received from %s: %s", message.author, message.content)
     GROOVESTER_EVENT_HANDLER.lastChannelCommandWasEntered = message.channel
@@ -102,21 +130,4 @@ async def on_message(message):  # Message procedure
     elif message.content.startswith("!remove"):
         pass
 
-    return True
-
-
-if __name__ == "__main__":
-    """Start point for the Groovester application."""
-
-    GROOVESTER_EVENT_HANDLER = GroovesterEventHandler()
-    configureProjectLogging()
-    setupTmpDirectory()  # Setup temporary location to store downloaded YouTube videos.
-    load_dotenv()  # Retrieve Groovester's API token from a .env file within the file system.
-
-    # Start the Groovester client thread.
-    try:
-        log.info("%s", InfoMessages._logNewGroovesterInstance)
-        log.debug("%s", DebugMessages._logClientRunAttempt)
-        client.run(os.getenv("botToken"))
-    except DiscordException as err:
-        log.error("%s %s", ErrorMessages._exceptionClientRun, err)
+    return

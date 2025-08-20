@@ -133,6 +133,7 @@ def deleteSongsOnFileSystemNotInQueue(handler: GroovesterEventHandler):
                             "%s %s", ErrorMessages._exceptionUnableToRemoveFileFromFileSystem, err
                         )
                         return False
+
         #! Todo: Create another synchronization variable to signal when this thread can run.
         sleep(10)
 
