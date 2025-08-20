@@ -9,6 +9,7 @@ if __name__ == "__main__":
         This serves as the entry point to the Groovester application.
     """
     
+    #! TODO: Allow user to specify log level. Add user-input parameters.
     log.basicConfig(
         datefmt="%Y-%m-%d %H:%M:%S",
         filename="Groovester.log",
