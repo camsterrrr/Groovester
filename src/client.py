@@ -36,7 +36,7 @@ def create_discord_client_instance() -> discord.Client:
         load_dotenv()
         CLIENT_OBJ.run(os.getenv("botToken"))
     else: 
-        log.warn("Discord Client object has not been instantiated! Check logic if this occurs...")
+        log.warning("Discord Client object has not been instantiated! Check logic if this occurs...")
     
     return CLIENT_OBJ
 
@@ -59,8 +59,8 @@ async def on_ready() -> None:
             helper threads.
     """
 
-    log.info("%s", InfoMessages._logGroovesterStartedSuccessfully)
-    print(InfoMessages._logGroovesterStartedSuccessfully)
+    log.info("Groovester started Successfully!")
+    print("Groovester started Successfully!")
 
     # Start various helper threads.
     playSongsInDiscordAudioThread = Thread(
@@ -69,10 +69,10 @@ async def on_ready() -> None:
     try:
         playSongsInDiscordAudioThread.start()
     except Exception as err:
-        log.error("%s %s", ErrorMessages._exceptionOnReadyChildThread, err)
+        log.error("General Exception, on_ready failed to spawn child thread: %s", err)
         #! TODO: Kill process when this exception is thrown.
 
-    return True
+    return
 
 
 @CLIENT_OBJ.event
