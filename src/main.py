@@ -1,6 +1,7 @@
+import asyncio
 import logging as log
 
-from src.client import create_discord_client_instance
+from src.bot import run_discord_bot
 from src.helpers import setup_media_directory
 
 
@@ -27,7 +28,7 @@ if __name__ == "__main__":
         log.debug("Attempting to start Groovester!")
         
         # Create Discord's client connection object.
-        client = create_discord_client_instance()
+        asyncio.run(run_discord_bot())
         
         # Setup the directory where media will be sotred temporarily.
         setup_media_directory()
