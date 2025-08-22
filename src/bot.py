@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 
 from src.Groovester import GroovesterEventHandler
 from src.threads import playDownloadedSongViaDiscordAudio
+from src.cogs.test import TestCog
 
 
 intents = discord.Intents.default()
@@ -32,16 +33,27 @@ async def load_cogs() -> None:
             bot starts up. This allows for scalable/seperateable code.
     """
     try:
-        print("ajshdfkajlhfd")
         for filename in os.listdir("./src/cogs"):
-            print(filename)
+            truncated_filename=filename[:-3]
             if filename.endswith(".py"):
-                await bot.load_extension("cogs." + filename[:-3])
-                log.debug("Succesffully loaded the %s cog.", filename)
+                # await bot.load_extension(f"src.cogs.{truncated_filename}")
+                await bot.add_cog(TestCog(bot))
+                log.debug(f"Succesffully loaded the {filename} cog.")
+
+    except TypeError as t_err:
+        log(f"Type error, failed to load the cogs: %s", t_err)
+        
+    except discord.ext.commands.CommandError as d_err1:
+        log(f"Discord command error, failed to load the cogs: %s", d_err1)
+        
+    except discord.ClientException as d_err2:
+        log(f"Discord client exception, failed to load the cogs: %s", d_err2)
+        
     except Exception as err:
-        log("General exception, failed to load the cogs: %s", err)
+        log(f"General exception, failed to load the cogs: %s", err)
 
     return
+
 
 async def run_discord_bot() -> None:
     """
@@ -52,10 +64,12 @@ async def run_discord_bot() -> None:
         async with bot:
             await load_cogs()
             await bot.start(bot_token)
+            
     except discord.DiscordException as d_err:
-        log.error("Discord exception, failed to run the bot: %s", d_err)
+        log.error(f"Discord exception, failed to run the bot: %s", d_err)
+        
     except Exception as err:
-        log.error("General exception, failed to run the bot: %s", err)
+        log.error(f"General exception, failed to run the bot: %s", err)
 
     return
 
@@ -93,15 +107,15 @@ async def on_ready() -> None:
     try:
         play_songs_in_discord_audio_thread.start()
     except Exception as err:
-        log.error("General Exception, on_ready failed to spawn child thread: %s", err)
+        log.error(f"General Exception, on_ready failed to spawn child thread: %s", err)
         #! TODO: Kill process when this exception is thrown.
     
     # Push offered slash commands to Discord servers.
     try:
         await bot.tree.sync(guild=guild_id)
-        log.info("Successfully synced the slash commands with the server!")
+        log.info(f"Successfully synced the slash commands with the server!")
     except Exception as err:
-        log.error("General exception, failed to sync the slash commands with the server: %s", err)
+        log.error(f"General exception, failed to sync the slash commands with the server: %s", err)
         
 
     return
