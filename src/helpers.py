@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 
 import discord
+from discord.ext import commands
 from pytube import YouTube
 
 from src.constants import ClientHelpMessages, DebugMessages, ErrorMessages, InfoMessages
@@ -89,6 +90,15 @@ def setup_media_directory(media_path=Path("./media/")) -> bool:
     os.chdir(media_path)
 
     return True
+
+def is_connected(ctx: commands.Context) -> bool:
+    """
+        Function to check if Groovester is actively connected to a voice
+            channel.
+    """
+    voice_client = discord.utils.get(ctx.bot.voice_clients, guild=ctx.guild)
+    
+    return voice_client and voice_client.is_connected()
 
 
 class PyTube:

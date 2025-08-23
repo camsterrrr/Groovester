@@ -10,45 +10,50 @@ from dotenv import load_dotenv
 
 from src.Groovester import GroovesterEventHandler
 from src.threads import playDownloadedSongViaDiscordAudio
+from src.cogs.join import Join
+from src.cogs.leave import Leave
 from src.cogs.test import TestCog
 
 
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
-#* Note that the command prefix was removed in recent versions. This 
-#*  doesn't do anything.
+# * Note that the command prefix was removed in recent versions. This
+# *  doesn't do anything.
 
 load_dotenv()
-guild_id = discord.Object(id=int(os.getenv("guild_id"))) # Unique identifier of the server.
+guild_id = discord.Object(
+    id=int(os.getenv("guild_id"))
+)  # Unique identifier of the server.
 bot_token = os.getenv("bot_token")
 
 # Create instance for custom event handler.
 GROOVESTER_EVENT_HANDLER = GroovesterEventHandler()
 
 
-async def load_cogs() -> None: 
+async def load_cogs() -> None:
     """
-        Function that associates each of the cog files when the 
-            bot starts up. This allows for scalable/seperateable code.
+    Function that associates each of the cog files when the bot starts up.
+        This allows for scalable/seperateable code.
     """
     try:
-        for filename in os.listdir("./src/cogs"):
-            truncated_filename=filename[:-3]
-            if filename.endswith(".py"):
-                # await bot.load_extension(f"src.cogs.{truncated_filename}")
-                await bot.add_cog(TestCog(bot))
-                log.debug(f"Succesffully loaded the {filename} cog.")
+        # await bot.load_extension(f"src.cogs.test")
+        await bot.add_cog(TestCog(bot), guilds=[guild_id])
+        await bot.add_cog(Join(bot), guilds=[guild_id])
+        await bot.add_cog(Leave(bot), guilds=[guild_id])
+        
+
+        log.debug(f"Succesffully loaded the cogs!")
 
     except TypeError as t_err:
         log(f"Type error, failed to load the cogs: %s", t_err)
-        
+
     except discord.ext.commands.CommandError as d_err1:
         log(f"Discord command error, failed to load the cogs: %s", d_err1)
-        
+
     except discord.ClientException as d_err2:
         log(f"Discord client exception, failed to load the cogs: %s", d_err2)
-        
+
     except Exception as err:
         log(f"General exception, failed to load the cogs: %s", err)
 
@@ -57,17 +62,17 @@ async def load_cogs() -> None:
 
 async def run_discord_bot() -> None:
     """
-        This function is used to instantiate an instance for the Discord 
-            client.
+    This function is used to instantiate an instance for the Discord
+        client.
     """
     try:
         async with bot:
             await load_cogs()
             await bot.start(bot_token)
-            
+
     except discord.DiscordException as d_err:
         log.error(f"Discord exception, failed to run the bot: %s", d_err)
-        
+
     except Exception as err:
         log.error(f"General exception, failed to run the bot: %s", err)
 
@@ -76,24 +81,23 @@ async def run_discord_bot() -> None:
 
 def run_play_songs_in_discord_audio_thread() -> None:
     """
-        Function used to start a new thread. This was needed because the
-            "playDownloadedSongViaDiscordAudio" is an asynchronous 
-            function.
+    Function used to start a new thread. This was needed because the
+        "playDownloadedSongViaDiscordAudio" is an asynchronous function.
     """
     asyncio.run(
         playDownloadedSongViaDiscordAudio(
             GROOVESTER_EVENT_HANDLER,
         )
     )
-    
+
     return
 
 
 @bot.event
 async def on_ready() -> None:
     """
-        Prints message when Groovester successfully starts and starts 
-            helper threads.
+    Prints message when Groovester successfully starts and starts helper
+        threads.
     """
 
     log.info("Groovester started Successfully!")
@@ -103,20 +107,22 @@ async def on_ready() -> None:
     play_songs_in_discord_audio_thread = Thread(
         target=run_play_songs_in_discord_audio_thread, args=()
     )
-    
+
     try:
         play_songs_in_discord_audio_thread.start()
     except Exception as err:
         log.error(f"General Exception, on_ready failed to spawn child thread: %s", err)
         #! TODO: Kill process when this exception is thrown.
-    
+
     # Push offered slash commands to Discord servers.
     try:
         await bot.tree.sync(guild=guild_id)
         log.info(f"Successfully synced the slash commands with the server!")
     except Exception as err:
-        log.error(f"General exception, failed to sync the slash commands with the server: %s", err)
-        
+        log.error(
+            f"General exception, failed to sync the slash commands with the server: %s",
+            err,
+        )
 
     return
 
@@ -131,7 +137,7 @@ async def on_ready() -> None:
 #     """
 #         Function that acts as the message procedure for the application.
 #             When an event occurs, Groovester will determine how to handle.
-        
+
 #         Args:
 #             message: The message that triggered the message procedure.
 #     """
@@ -144,7 +150,7 @@ async def on_ready() -> None:
 #     GROOVESTER_EVENT_HANDLER.lastChannelCommandWasEntered = message.channel
 
 #     if message.content == "!help":
-#         await message.channel.send(        
+#         await message.channel.send(
 #             "!play usage:\t !play *URL to YouTube URL*\n"
 #             + "\tGroovester will download YouTube video and play it in a voice channel.\n"
 #         )
