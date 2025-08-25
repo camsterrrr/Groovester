@@ -12,20 +12,20 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from src.helpers import is_connected
+from src.helpers import is_connected, set_voice_client
 
 
 log.getLogger(__name__)
 
 
 #! TODO: Add more messages.
-LIST_OF_LEAVE_MESSAGES = ["Bye, bye! 😔"]
+LIST_OF_LEAVE_MESSAGES = ["Bye, bye! 😔", "Damn son, I'll leave 😖"]
 
 
 class Leave(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         """
-        Join command constructor, links the bot object to the class instance.
+        Leave command constructor, links the bot object to the class instance.
         """
         self.bot = bot
 
@@ -59,7 +59,7 @@ class Leave(commands.Cog):
         if (
             voice_channel == None
         ):  # ? Is this variable None if Groovester is not in a voice channel?
-            
+
             log.error("!leave failed, Groovester is not in a voice channel.")
             await ctx.send(
                 "Incorrect !leave usage...\n"
@@ -71,7 +71,7 @@ class Leave(commands.Cog):
         # If connected to a voice channel, disconnect Groovester.
         if is_connected(ctx):
             try:
-                await voice_client.disconnect()
+                set_voice_client(await voice_client.disconnect())
                 log.debug(
                     f"!leave successfully disconnected from the voice channel: {voice_channel.name}",
                 )
@@ -89,9 +89,8 @@ class Leave(commands.Cog):
         else:
             pass  #! TODO: Send message about needing to be in same VC.
 
-
         #! TODO: Send random message
-        await ctx.send(LIST_OF_LEAVE_MESSAGES[0])
+        await ctx.send(LIST_OF_LEAVE_MESSAGES[1])
 
         #! TODO: print the number of songs still in queue.
         # ? Or would it be better to clear the queue at this point?

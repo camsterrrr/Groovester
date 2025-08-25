@@ -10,6 +10,8 @@ from pytube import YouTube
 
 log.getLogger(__name__)  # Set same logging parameters as client.py.
 
+VOICE_CLIENT: discord.VoiceClient = None
+
 
 class DownloadedMedia:
     """
@@ -29,35 +31,6 @@ class DownloadedMedia:
         self.timestamp = datetime.datetime.now()
         self.media_url = media_url
         self.pytube = pytube
-
-
-def file_in_use(path_to_file: Path) -> bool:
-    """
-    Function that checks if a file has an active process reading or
-        writing to it.
-
-    Args:
-        path_to_file (Path): Path to the object to check. Can be an
-            absolute or relative path.
-
-    Returns:
-        bool: Result of the check.
-            - True: If the resource is being used by another process
-            - False: If the resource is not being used.
-    """
-
-    try:
-        fd = os.open(
-            path_to_file, os.O_RDWR | os.O_EXCL
-        )  # os.O_EXCL ensures the operation fails if in use.
-        os.close(fd)
-
-    except OSError as err:
-        log.debug(f"Can't delete {path_to_file} becuase it's in use: {err}")
-
-        return True
-
-    return False
 
 
 def download_youtube_audio(
@@ -116,6 +89,50 @@ def download_youtube_audio(
     return downloaded_media
 
 
+def file_in_use(path_to_file: Path) -> bool:
+    """
+    Function that checks if a file has an active process reading or
+        writing to it.
+
+    Args:
+        path_to_file (Path): Path to the object to check. Can be an
+            absolute or relative path.
+
+    Returns:
+        bool: Result of the check.
+            - True: If the resource is being used by another process
+            - False: If the resource is not being used.
+    """
+
+    try:
+        fd = os.open(
+            path_to_file, os.O_RDWR | os.O_EXCL
+        )  # os.O_EXCL ensures the operation fails if in use.
+        os.close(fd)
+
+    except OSError as err:
+        log.debug(f"Can't delete {path_to_file} becuase it's in use: {err}")
+
+        return True
+
+    return False
+
+
+def is_connected(ctx: commands.Context) -> bool:
+    """
+    Function to check if Groovester is actively connected to a voice
+        channel.
+    """
+    voice_client = discord.utils.get(ctx.bot.voice_clients, guild=ctx.guild)
+
+    return voice_client and voice_client.is_connected()
+
+
+def set_voice_client(voice_client_operation):
+    global VOICE_CLIENT
+    VOICE_CLIENT = voice_client_operation
+
+
 #!  Todo: Create a thread that goes through and verifies the videos stored in /tmp are still there.
 #!       Compare against list.
 def setup_media_directory(media_path=Path("./media/")) -> bool:
@@ -150,13 +167,3 @@ def setup_media_directory(media_path=Path("./media/")) -> bool:
     os.chdir(media_path)
 
     return True
-
-
-def is_connected(ctx: commands.Context) -> bool:
-    """
-    Function to check if Groovester is actively connected to a voice
-        channel.
-    """
-    voice_client = discord.utils.get(ctx.bot.voice_clients, guild=ctx.guild)
-
-    return voice_client and voice_client.is_connected()

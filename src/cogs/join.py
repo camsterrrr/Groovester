@@ -11,7 +11,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from src.helpers import is_connected
+from src.helpers import is_connected, set_voice_client
 
 
 log.getLogger(__name__)
@@ -43,6 +43,8 @@ class Join(commands.Cog):
             message author is connected to.
         """
 
+        ctx.voice_client
+
         message_obj = ctx.message
         message_author = ctx.message.author
 
@@ -53,7 +55,7 @@ class Join(commands.Cog):
             #! TODO: Check if Groovester is already in a voice channel.
             try:
                 voice_channel = message_author.voice.channel
-                await voice_channel.connect()
+                set_voice_client(await voice_channel.connect())
                 log.debug(
                     f"!join successfully connected to the voice channel: {voice_channel.name}"
                 )
@@ -91,4 +93,3 @@ class Join(commands.Cog):
         )
 
         return
-    
