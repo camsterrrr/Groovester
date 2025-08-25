@@ -1,3 +1,4 @@
+import datetime
 import logging as log
 import os
 from pathlib import Path
@@ -6,56 +7,113 @@ import discord
 from discord.ext import commands
 from pytube import YouTube
 
-from src.constants import ClientHelpMessages, DebugMessages, ErrorMessages, InfoMessages
 
 log.getLogger(__name__)  # Set same logging parameters as client.py.
 
 
-def checkIfFileIsInUse(absPathToFile: str) -> bool:
+class DownloadedMedia:
+    """
+    Object that maintains reference to relevant information for song
+        requests.
+    """
+
+    def __init__(
+        self,
+        path_to_file: Path,
+        requestor: discord.member.Member,  # The message author.
+        media_url: str,
+        pytube: YouTube,
+    ):
+        self.path_to_file = path_to_file
+        self.requestor = requestor
+        self.timestamp = datetime.datetime.now()
+        self.media_url = media_url
+        self.pytube = pytube
+
+
+def file_in_use(path_to_file: Path) -> bool:
+    """
+    Function that checks if a file has an active process reading or
+        writing to it.
+
+    Args:
+        path_to_file (Path): Path to the object to check. Can be an
+            absolute or relative path.
+
+    Returns:
+        bool: Result of the check.
+            - True: If the resource is being used by another process
+            - False: If the resource is not being used.
+    """
 
     try:
         fd = os.open(
-            absPathToFile, os.O_RDWR | os.O_EXCL
+            path_to_file, os.O_RDWR | os.O_EXCL
         )  # os.O_EXCL ensures the operation fails if in use.
         os.close(fd)
+
     except OSError as err:
-        log.debug("Can't delete " + absPathToFile + " becuase it's in use: " + err)
+        log.debug(f"Can't delete {path_to_file} becuase it's in use: {err}")
 
         return True
 
     return False
 
 
-#! Todo: Make class that can store URL and absolute file path on local file system.
-def downloadYouTubeAudio(linkToYouTubeVideo: str):
-    """Helper function used to download a YouTube video given a valid URL."""
+def download_youtube_audio(
+    media_url: str, requestor: discord.member.Member
+) -> DownloadedMedia:
+    """
+    Helper function used to download a YouTube video given a valid YouTube
+        URL.
+    Future work will allow for other types of streamed media, like
+        Spotify.
+
+    Args:
+        media_path (str): Represents a URL of the YouTube video that the
+            user wants to download.
+        requestor (discord.member.Member): Represents the Member object
+            of the !play command's message author.
+
+    Returns:
+        DownloadedMedia: An object that stores relevant information for
+            the request.
+    """
 
     #!  Todo: Ensure that the local file system has enough space for the video.
-    ytObj = YouTube(linkToYouTubeVideo)
-    audioStream = (
-        ytObj.streams.get_audio_only()
+    youtube_obj = YouTube(media_url)
+    audio_stream = (
+        youtube_obj.streams.get_audio_only()  # ? ASCII characters issue?
     )  # Only download audio and save it as .mp4.
 
     # Download video via pytube API.
     try:
-        absPathToDownloadedVideo = audioStream.download()
-    except OSError as err:
-        log.error("%s %s", ErrorMessages._exceptionPlayFailedToDownloadVideo, err)
-        return None
-    except Exception as err:
-        log.error(err)
-        return None
+        log.debug(f"Attempting to download the following song: {media_url}")
+        path_to_file = Path(audio_stream.download())
 
-    if not os.path.exists(absPathToDownloadedVideo):
-        return None
-    log.debug(
-        "%s %s", InfoMessages._logPlaySuccessfulyDownloadedVideo, linkToYouTubeVideo
-    )
+    except OSError as os_err:
+        log.error(f"OS exception, unexpected error occurred: {os_err}")
+
+        return
+
+    except Exception as err:
+        log.error(f"General exception, unexpected error occurred: {err}")
+
+        return
+
+    # Sanity check.
+    if not os.path.exists(path_to_file):
+        log.debug(
+            f"Failed to download the following video, no file exists on the local file system: {media_url}"
+        )
+        return
+
+    log.info(f"Successfully downloaded the following video: {media_url}")
 
     # Store key information relating to the video in a PyTube object.
-    pytubeObj = PyTube(absPathToDownloadedVideo, linkToYouTubeVideo, ytObj)
+    downloaded_media = DownloadedMedia(path_to_file, requestor, media_url, youtube_obj)
 
-    return pytubeObj
+    return downloaded_media
 
 
 #!  Todo: Create a thread that goes through and verifies the videos stored in /tmp are still there.
@@ -81,29 +139,24 @@ def setup_media_directory(media_path=Path("./media/")) -> bool:
 
         except OSError as os_err:
             log.error(os_err)
+
             return False
 
         except Exception as err:
             log.error(err)
+
             return False
 
     os.chdir(media_path)
 
     return True
 
+
 def is_connected(ctx: commands.Context) -> bool:
     """
-        Function to check if Groovester is actively connected to a voice
-            channel.
+    Function to check if Groovester is actively connected to a voice
+        channel.
     """
     voice_client = discord.utils.get(ctx.bot.voice_clients, guild=ctx.guild)
-    
+
     return voice_client and voice_client.is_connected()
-
-
-class PyTube:
-
-    def __init__(self, absPathToFile: str, url: str, pytube: YouTube):
-        self.absPathToFile = absPathToFile
-        self.url = url
-        self.pytube = pytube
