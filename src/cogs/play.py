@@ -13,23 +13,22 @@ from discord.ext import commands
 from validators import url
 
 from src.helpers import DownloadedMedia, download_youtube_audio
-from src.threads import ThreadWarden
+from src.threads import ThreadWarden, THREAD_WARDEN
 
 
 log.getLogger(__name__)
 
 
 #! TODO: There are several YouTube domnains to check for.
-YOUTUBE_DOMAINS = ["www.youtube.com", "www.youtu.be"]
+YOUTUBE_DOMAINS: list = ["www.youtube.com", "www.youtu.be"]
 
 
 class Play(commands.Cog):
-    def __init__(self, bot: commands.Bot, thread_warden: ThreadWarden) -> None:
+    def __init__(self, bot: commands.Bot) -> None:
         """
         Play command constructor, links the bot object to the class instance.
         """
         self.bot = bot
-        self.thread_warden = thread_warden
 
         return
 
@@ -83,7 +82,7 @@ class Play(commands.Cog):
         # Test if the Domain is reachable and valid.
         # *  (Emphasis on Domain)
         if not url(media_url):
-            await ctx.send("Incorrect !play usage...\n" + "\tEnter a valid domain.")
+            await ctx.send("Incorrect !play usage...\n\tEnter a valid domain.")
 
             return
 
@@ -98,27 +97,27 @@ class Play(commands.Cog):
             return
 
         # Acquire lock and await signal.
-        with self.thread_warden.writer_cv:
+        with THREAD_WARDEN.writer_cv:
 
             # Fall through, only if there are no active readers or writers.
-            while self.thread_warden.num_readers or self.thread_warden.num_writers:
-                self.thread_warden.writer_cv.wait()
+            while THREAD_WARDEN.num_readers or THREAD_WARDEN.num_writers:
+                THREAD_WARDEN.writer_cv.wait()
 
             # * Enter mutual exclusion zone.
-            self.num_writers = self.num_writers + 1  # Lock
+            THREAD_WARDEN.num_writers = THREAD_WARDEN.num_writers + 1  # Lock
 
             log.info(
                 f"Adding the following media to the song queue: {downloaded_media.path_to_file}",
             )
-            self.thread_warden.song_queue.append(downloaded_media)
+            THREAD_WARDEN.song_queue.append(downloaded_media)
 
-            self.num_writers = self.num_writers - 1  # Unlock
+            THREAD_WARDEN.num_writers = THREAD_WARDEN.num_writers - 1  # Unlock
             # * Exit mutual exclusion zone.
 
             # Signal any threads waiting to run.
-            with self.thread_warden.reader_cv:
-                self.thread_warden.reader_cv.notify()
-            self.thread_warden.writer_cv.notify()
+            with THREAD_WARDEN.reader_cv:
+                THREAD_WARDEN.reader_cv.notify()
+            THREAD_WARDEN.writer_cv.notify()
 
         # #! TODO: If Groovester is not already in the voice channel have it connect to the voice channel.
         # if not is_connected(ctx):

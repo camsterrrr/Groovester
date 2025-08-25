@@ -6,14 +6,12 @@ from time import sleep
 
 import discord
 
-from src.constants import ClientHelpMessages, DebugMessages, ErrorMessages, InfoMessages
-from src.Groovester import GroovesterEventHandler
 from src.helpers import download_youtube_audio, file_in_use, VOICE_CLIENT
 
 log.getLogger(__name__)  # Set same logging parameters as client.py.
 
 
-LIMIT_OF_SONGS_TO_DOWNLOAD = 10
+LIMIT_OF_SONGS_TO_DOWNLOAD: int = 10
 
 
 class ThreadWarden:
@@ -84,8 +82,8 @@ class ThreadWarden:
 
         return
 
-    # Get signaled to play audio in a Discord channel.
 
+    # Get signaled to play audio in a Discord channel.
     async def prepare_discord_audio(self):
         """
         Thread that is used to stream audio when Groovester is in a voice channel.
@@ -105,7 +103,7 @@ class ThreadWarden:
                     #! Todo: while true and replace whiles with if
                     #!  statements. Otherwise, checks can be by passed.
                     if len(self.song_queue) == 0:
-                        log.debug(DebugMessages._logQueueEmpty)
+                        log.debug("Giving up this time slice because there are no songs in the queue.")
                         self.reader_cv.wait()
                         continue
 
@@ -326,3 +324,5 @@ class ThreadWarden:
     #         sleep(10)
 
     #     return
+
+THREAD_WARDEN: ThreadWarden = ThreadWarden()

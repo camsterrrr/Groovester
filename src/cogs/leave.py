@@ -19,7 +19,7 @@ log.getLogger(__name__)
 
 
 #! TODO: Add more messages.
-LIST_OF_LEAVE_MESSAGES = ["Bye, bye! 😔", "Damn son, I'll leave 😖"]
+LIST_OF_LEAVE_MESSAGES: list = ["Bye, bye! 😔", "Damn son, I'll leave 😖"]
 
 
 class Leave(commands.Cog):
