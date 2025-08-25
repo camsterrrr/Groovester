@@ -12,6 +12,8 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from src.helpers import is_connected
+
 
 log.getLogger(__name__)
 
@@ -67,6 +69,13 @@ class TestCog(commands.Cog):
         print(f"Groovester is coconnected to a voice channel: {is_connected(ctx)}")
 
         return
+
+    @commands.command()
+    async def get_type(self, ctx: commands.Context) -> None:
+        print(f"Author type: {type(ctx.message.author)}")
+
+        return
+
 
 # import os
 # from dotenv import load_dotenv
