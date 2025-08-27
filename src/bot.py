@@ -22,9 +22,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # *  doesn't do anything.
 
 load_dotenv()
-guild_id = discord.Object(
-    id=int(os.getenv("guild_id"))
-)  # Unique identifier of the server.
+guild_id = discord.Object(id=int(os.getenv("guild_id")))  # Unique identifier of the server.
 bot_token = os.getenv("bot_token")
 
 

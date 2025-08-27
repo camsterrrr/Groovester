@@ -5,7 +5,8 @@ from pathlib import Path
 
 import discord
 from discord.ext import commands
-from pytube import YouTube
+from pytubefix import YouTube
+from validators import ValidationError, url
 
 
 log.getLogger(__name__)  # Set same logging parameters as client.py.
@@ -149,21 +150,74 @@ def setup_media_directory(media_path=Path("./media/")) -> bool:
             - True: Media directoy was created or already exists.
             - False: Exception thrown or bad file system path provided.
     """
+    flag: bool = False
 
     if not os.path.exists(media_path):
         try:
             os.mkdir(media_path)
+            flag = True
 
         except OSError as os_err:
             log.error(os_err)
-
-            return False
+            flag = False
 
         except Exception as err:
             log.error(err)
-
-            return False
+            flag = False
 
     os.chdir(media_path)
 
-    return True
+    return flag
+
+
+def validate_url(media_url: str) -> bool:
+    """
+    Function that validates a given URL is valid.
+
+    Args:
+        media_url (str): URL of media that needs to be validated.
+
+    Returns:
+        Bool: Indicates whether the URL is valid or not.
+    """
+    try:
+        flag = url(media_url)
+
+    except ValidationError as v_err:
+        log.error(f"Validation error, unable to validate {media_url}: {v_err}")
+        flag = False
+
+    except Exception as err:
+        log.error(
+            f"General exception, unexpected error occurred when trying to test the media URL: {err}"
+        )
+        flag = False
+
+    return flag
+
+
+def validate_url_domain(media_url: str) -> bool:
+    """
+    Function that validates if a URL has an allowed domain.
+
+    Args:
+        media_url (str): URL of media that needs to be validated.
+
+    Returns:
+        Bool: Indicates whether the URL is valid or not.
+    """
+    #! TODO: There are several YouTube domnains to check for.
+    valid_domains: list = [
+        "www.youtube.com",
+        "www.youtu.be",
+        "https://www.youtube.com",
+        "https://www.youtu.be",
+    ]
+
+    if any(media_url.startswith(i) for i in valid_domains):
+        flag = True
+
+    else:
+        flag = False
+
+    return flag

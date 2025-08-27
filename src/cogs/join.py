@@ -8,7 +8,6 @@
 import logging as log
 
 import discord
-from discord import app_commands
 from discord.ext import commands
 
 from src.helpers import is_connected, set_voice_client
