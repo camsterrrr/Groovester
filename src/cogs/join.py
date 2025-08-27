@@ -6,12 +6,13 @@
 """
 
 import logging as log
+from time import sleep
 
 import discord
-from discord import app_commands
 from discord.ext import commands
 
-from src.helpers import is_connected, set_voice_client
+from src.helpers import get_voice_client, is_connected, set_voice_client
+
 
 
 log.getLogger(__name__)
@@ -56,6 +57,8 @@ class Join(commands.Cog):
             try:
                 voice_channel = message_author.voice.channel
                 set_voice_client(await voice_channel.connect())
+                # print(type(get_voice_client()))
+                
                 log.debug(
                     f"!join successfully connected to the voice channel: {voice_channel.name}"
                 )

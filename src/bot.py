@@ -12,7 +12,7 @@ from src.cogs.join import Join
 from src.cogs.leave import Leave
 from src.cogs.play import Play
 from src.cogs.test import TestCog
-from src.threads import THREAD_WARDEN
+from src.threads import get_thread_warden
 
 
 intents = discord.Intents.default()
@@ -36,7 +36,7 @@ async def load_cogs() -> None:
     """
     try:
         # await bot.load_extension(f"src.cogs.test")
-        
+
         # * {guild_id} is user-defined.
         await bot.add_cog(Join(bot), guilds=[guild_id])
         await bot.add_cog(Leave(bot), guilds=[guild_id])
@@ -62,7 +62,7 @@ async def load_cogs() -> None:
 
 async def run_discord_bot() -> None:
     """
-    Function acts as the entry point for the Discord bot and is used to 
+    Function acts as the entry point for the Discord bot and is used to
         instantiate (start) the bot instance.
     """
     try:
@@ -83,14 +83,12 @@ async def run_discord_bot() -> None:
 def run_discord_audio_thread() -> None:
     """
     Function used to start a new thread dedicated to preparing and
-        streaming songs via voice channels. 
+        streaming songs via voice channels.
     """
     #! TODO: The reason this function is needed, is because on_ready
     #!  uses Thread class, which can't run asynchronous functions.
     #!  See if asyncio can resolve this and remove this function.
-    asyncio.run(
-        THREAD_WARDEN.prepare_discord_audio()
-    )
+    asyncio.run(get_thread_warden().prepare_discord_audio())
 
     return
 

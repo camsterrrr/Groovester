@@ -8,19 +8,13 @@
 import logging as log
 
 import discord
-from discord import app_commands
 from discord.ext import commands
-from validators import url
 
-from src.helpers import DownloadedMedia, download_youtube_audio
-from src.threads import ThreadWarden, THREAD_WARDEN
+from src.helpers import download_youtube_audio, validate_url, validate_url_domain
+from src.threads import get_thread_warden
 
 
 log.getLogger(__name__)
-
-
-#! TODO: There are several YouTube domnains to check for.
-YOUTUBE_DOMAINS: list = ["www.youtube.com", "www.youtu.be"]
 
 
 class Play(commands.Cog):
@@ -45,14 +39,11 @@ class Play(commands.Cog):
     @commands.command()
     async def play(self, ctx: commands.Context) -> None:
         """
-        This command triggers Groovester to leave the voice channel that
-            it's connected to.
+        This command triggers the bot to download a song and place it in
+            the queue.
         """
-
-        """Client event to download a song and place it in the queue."""
-
         # Input validation: The command should be in the format of:
-        #   !play https://youtube.com/arbitrary/url
+        #   '!play https://youtube.com/arbitrary/url'
         play_command = ctx.message.content
         media_url = None
 
@@ -62,64 +53,39 @@ class Play(commands.Cog):
             and play_command[5] == " "
         ):
             media_url = play_command[6:]
+            log.debug(f"Stripped message: {media_url}")
 
         else:
-            await ctx.send(
-                "Incorrect !play usage...\n" + "\t!play *URL to YouTube video*"
-            )
+            await ctx.send("Incorrect !play usage...\n\t!play *URL to YouTube video*")
 
             return
 
-        # Check domain is what is expected.
-        #! TODO: There are several YouTube domnains to check for.
-        if not media_url.startswith("https://www.youtube.com/"):
-            await ctx.send(
-                "Incorrect !play usage...\n" + "\tPlease enter a valid domain."
-            )
+        # * 1. Check domain is what is expected.
+        if not validate_url_domain(media_url):
+            await ctx.send("Incorrect !play usage...\n\tPlease enter a valid domain.")
 
             return
 
-        # Test if the Domain is reachable and valid.
+        # * 2. Test if the Domain is reachable and valid.
         # *  (Emphasis on Domain)
-        if not url(media_url):
+        if not validate_url(media_url):
             await ctx.send("Incorrect !play usage...\n\tEnter a valid domain.")
 
-            return
-
         #! TODO: Add logic to limit the number of downloaded videos to ten.
-        # Download the YouTube video.
+        #!  Download the YouTube video.
         #! TODO: Pass author name as requestor so that it's in the
-        #   DownloadedMedia object.
+        #!  DownloadedMedia object.
         downloaded_media = download_youtube_audio(media_url, ctx.message.author)
         if downloaded_media is None:
             await ctx.send("Groovester failed to download the requested video!")
 
             return
 
-        # Acquire lock and await signal.
-        with THREAD_WARDEN.writer_cv:
+        #! TODO: Invoke add song to queue logic.
+        get_thread_warden().add_media_to_queue(downloaded_media)
 
-            # Fall through, only if there are no active readers or writers.
-            while THREAD_WARDEN.num_readers or THREAD_WARDEN.num_writers:
-                THREAD_WARDEN.writer_cv.wait()
-
-            # * Enter mutual exclusion zone.
-            THREAD_WARDEN.num_writers = THREAD_WARDEN.num_writers + 1  # Lock
-
-            log.info(
-                f"Adding the following media to the song queue: {downloaded_media.path_to_file}",
-            )
-            THREAD_WARDEN.song_queue.append(downloaded_media)
-
-            THREAD_WARDEN.num_writers = THREAD_WARDEN.num_writers - 1  # Unlock
-            # * Exit mutual exclusion zone.
-
-            # Signal any threads waiting to run.
-            with THREAD_WARDEN.reader_cv:
-                THREAD_WARDEN.reader_cv.notify()
-            THREAD_WARDEN.writer_cv.notify()
-
-        # #! TODO: If Groovester is not already in the voice channel have it connect to the voice channel.
+        # ! TODO: If Groovester is not already in the voice channel have
+        # !  it connect to the voice channel.
         # if not is_connected(ctx):
         #     await join(ctx)
 

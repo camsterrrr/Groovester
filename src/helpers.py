@@ -2,10 +2,12 @@ import datetime
 import logging as log
 import os
 from pathlib import Path
+from shutil import rmtree
 
 import discord
 from discord.ext import commands
-from pytube import YouTube
+from pytubefix import YouTube
+from validators import ValidationError, url
 
 
 log.getLogger(__name__)  # Set same logging parameters as client.py.
@@ -26,11 +28,11 @@ class DownloadedMedia:
         media_url: str,
         pytube: YouTube,
     ):
-        self.path_to_file = path_to_file
-        self.requestor = requestor
-        self.timestamp = datetime.datetime.now()
-        self.media_url = media_url
-        self.pytube = pytube
+        self.path_to_file: Path = path_to_file
+        self.requestor: discord.member.Member = requestor
+        self.timestamp: datetime = datetime.datetime.now()
+        self.media_url: str = media_url
+        self.pytube: YouTube = pytube
 
 
 def download_youtube_audio(
@@ -38,8 +40,7 @@ def download_youtube_audio(
 ) -> DownloadedMedia:
     """
     Helper function used to download a YouTube video given a valid YouTube
-        URL.
-    Future work will allow for other types of streamed media, like
+        URL. Future work will allow for other types of streamed media, like
         Spotify.
 
     Args:
@@ -52,17 +53,18 @@ def download_youtube_audio(
         DownloadedMedia: An object that stores relevant information for
             the request.
     """
-
-    #!  Todo: Ensure that the local file system has enough space for the video.
-    youtube_obj = YouTube(media_url)
-    audio_stream = (
-        youtube_obj.streams.get_audio_only()  # ? ASCII characters issue?
-    )  # Only download audio and save it as .mp4.
-
-    # Download video via pytube API.
+    # Download video via `pytubefix` API.
     try:
-        log.debug(f"Attempting to download the following song: {media_url}")
-        path_to_file = Path(audio_stream.download())
+        #! TODO: Ensure that the local file system has enough space for
+        #!  the video.
+        youtube_obj = YouTube(media_url)
+        audio_stream = youtube_obj.streams.get_audio_only(
+            subtype="mp4"
+        )  # Only download audio and save it as .mp4.
+        path_to_file = Path(
+            audio_stream.download(filename=f"{youtube_obj.video_id}.mp4")
+        )
+        log.debug(f"Downloaded the following song: {media_url}")
 
     except OSError as os_err:
         log.error(f"OS exception, unexpected error occurred: {os_err}")
@@ -79,6 +81,7 @@ def download_youtube_audio(
         log.debug(
             f"Failed to download the following video, no file exists on the local file system: {media_url}"
         )
+
         return
 
     log.info(f"Successfully downloaded the following video: {media_url}")
@@ -87,6 +90,18 @@ def download_youtube_audio(
     downloaded_media = DownloadedMedia(path_to_file, requestor, media_url, youtube_obj)
 
     return downloaded_media
+
+
+def get_voice_client() -> discord.VoiceClient:
+    """
+    Function that returns a reference to the global VOICE_CLIENT variable
+        to other parts of the program.
+
+    Returns:
+        discord.VoiceClient: Object representing the state of the Discord
+            bot's voice client capabilities.
+    """
+    return VOICE_CLIENT
 
 
 def file_in_use(path_to_file: Path) -> bool:
@@ -111,7 +126,7 @@ def file_in_use(path_to_file: Path) -> bool:
         os.close(fd)
 
     except OSError as err:
-        log.debug(f"Can't delete {path_to_file} becuase it's in use: {err}")
+        log.debug(f"Can't delete {path_to_file} because it's in use: {err}")
 
         return True
 
@@ -120,7 +135,7 @@ def file_in_use(path_to_file: Path) -> bool:
 
 def is_connected(ctx: commands.Context) -> bool:
     """
-    Function to check if Groovester is actively connected to a voice
+    Function to check if the Discord bot is actively connected to a voice
         channel.
     """
     voice_client = discord.utils.get(ctx.bot.voice_clients, guild=ctx.guild)
@@ -128,16 +143,27 @@ def is_connected(ctx: commands.Context) -> bool:
     return voice_client and voice_client.is_connected()
 
 
-def set_voice_client(voice_client_operation):
+def set_voice_client(voice_client_operation: discord.VoiceClient) -> None:
+    """
+    Function that sets the voice channel global variable as the Discord
+        bot is connected and disconnected from voice channels.
+
+    Args:
+        voice_client_operation (discord.VoiceClient): Represents the
+            object returned after calling voice_channel.connect() or
+            voice_channel.disconnect().
+    """
     global VOICE_CLIENT
     VOICE_CLIENT = voice_client_operation
 
+    return
 
-#!  Todo: Create a thread that goes through and verifies the videos stored in /tmp are still there.
-#!       Compare against list.
+
+#! TODO: Create a thread that goes through and verifies the videos stored
+#!  in /tmp are still there. Compare against list.
 def setup_media_directory(media_path=Path("./media/")) -> bool:
     """
-    This function is invoked when the Groovester application starts. It
+    This function is invoked when the Discord bot application starts. It
         creates a directory where media can be stored.
 
     Args:
@@ -146,24 +172,140 @@ def setup_media_directory(media_path=Path("./media/")) -> bool:
 
     Returns:
         bool: A flag indicating whether or not action was successful.
-            - True: Media directoy was created or already exists.
+            - True: Media directory was created or already exists.
             - False: Exception thrown or bad file system path provided.
     """
+    flag: bool = True
 
     if not os.path.exists(media_path):
         try:
             os.mkdir(media_path)
+            flag = True
 
         except OSError as os_err:
             log.error(os_err)
-
-            return False
+            flag = False
 
         except Exception as err:
             log.error(err)
-
-            return False
+            flag = False
 
     os.chdir(media_path)
 
-    return True
+    return flag
+
+
+def remove_media_directory(media_path=Path("./media/")) -> bool:
+    """
+    This function is invoked during unit testing to remove any media files
+        from the file system.
+
+    Args:
+        media_path (Path): Represents file system path to the media
+            directory that should be deleted.
+
+    Returns:
+        bool: A flag indicating whether or not action was successful.
+            - True: Media directory was deleted.
+            - False: Exception thrown or bad file system path provided.
+    """
+    flag: bool = False
+
+    if os.path.exists(media_path):
+        try:
+            rmtree(media_path)
+            flag = True
+
+        except OSError as os_err:
+            log.error(os_err)
+            flag = False
+
+        except Exception as err:
+            log.error(err)
+            flag = False
+
+    return flag
+
+
+def remove_media_file(media_path: Path) -> bool:
+    """
+    This function removes a specified file from the file system.
+
+    Args:
+        media_path (Path): Represents file system path to the file that
+            will be deleted.
+
+    Returns:
+        bool: A flag indicating whether or not action was successful.
+            - True: Media file was deleted.
+            - False: Exception thrown or bad file system path provided.
+    """
+    flag: bool = False
+
+    if os.path.exists(media_path):
+        try:
+            os.remove(media_path)
+            flag = True
+
+        except OSError as os_err:
+            log.error(os_err)
+            flag = False
+
+        except Exception as err:
+            log.error(err)
+            flag = False
+
+    return flag
+
+
+def validate_url(media_url: str) -> bool:
+    """
+    Function that validates a given URL is valid.
+
+    Args:
+        media_url (str): URL of media that needs to be validated.
+
+    Returns:
+        Bool: Indicates whether the URL is valid or not.
+    """
+    try:
+        flag = url(media_url)
+
+    except ValidationError as v_err:
+        log.error(f"Validation error, unable to validate {media_url}: {v_err}")
+        flag = False
+
+    except Exception as err:
+        log.error(
+            f"General exception, unexpected error occurred when trying to test the media URL: {err}"
+        )
+        flag = False
+
+    return flag
+
+
+def validate_url_domain(media_url: str) -> bool:
+    """
+    Function that validates if a URL has an allowed domain.
+
+    Args:
+        media_url (str): URL of media that needs to be validated.
+
+    Returns:
+        Bool: Indicates whether the URL is valid or not.
+    """
+    #! TODO: There are several YouTube domains to check for.
+    valid_domains: list = [
+        "www.youtube.com",
+        "www.youtu.be",
+        "https://www.youtube.com",
+        "https://www.youtu.be",
+    ]
+
+    if any(media_url.startswith(i) for i in valid_domains):
+        flag = True
+
+    else:
+        flag = False
+
+    return flag
