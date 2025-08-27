@@ -1,6 +1,6 @@
 # Groovester
 
-Want a groovy Discord voice channel? Groovester is a Discord Application that can build up a queue of song requests, join Discord voice channels, and play requested songs for all to enjoy!
+Want a groovy Discord voice channel? 😉 Groovester is a Discord Application that can build up a queue of song requests, join Discord voice channels, and play requested songs for all to enjoy! 😁
 
 ## Groovester's Commands
 
@@ -35,9 +35,9 @@ Groovester
 
 Groovester was developed using a Virtual Box virtual machine running Ubuntu 22.04 LTS. If you have a different operating system, or flavor of Linux, only the package manager commands should be different.
 
-If you're on Windows, consider switching operating systems :).
+If you're on Windows, consider switching operating systems 😉.
 
-### Step 0: Package Setup
+### 📦 Step 0: Package Setup
 
 This Discord Application relies on Python 3 and several Python modules in order to operate. 
 
@@ -55,7 +55,7 @@ You can install all of the Python modules via the Python package manager.
 pip install --upgrade Discord.py pytube python-dotenv validators pynacl ffmpeg		
 ```
 
-### Step 1: Cloning
+### ♟️ Step 1: Cloning
 
 Clone this repository.
 
@@ -63,7 +63,7 @@ Clone this repository.
 git clone https://github.com/camsterrrr/Groovester.git
 ```
 
-### Step 2: Setting Up the Environment
+### ⚙️ Step 2: Setting Up the Environment
 
 You'll need to create your own Discord application and get your own Discord Application token. There are plenty of guides out there for creating an Application, so I won't go into detail here... 
 
@@ -73,7 +73,7 @@ Currently, the Groovester application will pull the application token from a .en
 
 Reference the "Tree" section as needed.
 
-### Step 3: Running the Application
+### 🏃‍♂️ Step 3: Running the Application
 
 Before you read any further, set your working directory as Groovester.
 
@@ -84,7 +84,7 @@ To create a new `screen` instance run the following command.
 ```bash
 screen -dmS Groovester
 screen -S Groovester -X stuff "^M"
-screen -S Groovester -X stuff "python3 -m src.client^M"
+screen -S Groovester -X stuff "python3 -m src.main^M"
 ```
 
 To "reattach" into the `screen` session, issue the following command.

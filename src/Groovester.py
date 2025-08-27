@@ -4,7 +4,7 @@ from threading import Condition, Lock
 import discord
 from validators import url
 
-from src.constants import ClientMessages, DebugMessages, ErrorMessages, InfoMessages
+from src.constants import ClientHelpMessages, DebugMessages, ErrorMessages, InfoMessages
 from src.helpers import downloadYouTubeAudio, PyTube
 
 log.getLogger(__name__)  # Set same logging parameters as client.py.
@@ -33,41 +33,42 @@ class GroovesterEventHandler:
 
         self.lastChannelCommandWasEntered = None
 
-    async def joinClientEvent(self, message):
-        """Client event, which is used to connect Groovester to a Voice Channel."""
+    # async def joinClientEvent(self, message):
+    #     """Client event, which is used to connect Groovester to a Voice Channel."""
 
-        # Validate author is in a voice channel.
-        if message.author.voice:
-            # Connect Groovester to voice channel.
-            try:
-                voiceChannel = message.author.voice.channel
-                self.voiceClient = await voiceChannel.connect()
-                log.debug(
-                    "%s %s", InfoMessages._logConnectedToVoiceChannel, voiceChannel.name
-                )
-            except discord.ClientException as err:
-                log.error(err)
-                return False
-            except Exception as err:
-                log.error(err)
-                return False
-        else:
-            log.error(ErrorMessages._logJoinCmdAuthorNotInVoiceChannel)
-            await message.channel.send(ErrorMessages._sendJoinCmdNoActiveVoiceChannel)
-            return False
+    #     # Validate author is in a voice channel.
+    #     if message.author.voice:
+    #         # Connect Groovester to voice channel.
+    #         try:
+    #             voiceChannel = message.author.voice.channel
+    #             self.voiceClient = await voiceChannel.connect()
+    #             log.debug(
+    #                 "%s %s", DebugMessages._logConnectedToVoiceChannel, voiceChannel.name
+    #             )
+    #         except discord.ClientException as err:
+    #             log.error(err)
+    #             return False
+    #         except Exception as err:
+    #             log.error(err)
+    #             return False
+    #     else:
+    #         log.error(ErrorMessages._logJoinCmdAuthorNotInVoiceChannel)
+    #         await message.channel.send(ErrorMessages._sendJoinCmdNoActiveVoiceChannel)
+    #         return False
 
-        with self.readerCv:
-            self.readerCv.notify()
+    #     with self.readerCv:
+    #         self.readerCv.notify()
 
-        await message.channel.send(
-            InfoMessages._sendJoinCmdSuccessfulVoiceClientConnect
-        )
+    #     await message.channel.send(
+    #         ClientHelpMessages._sendJoinCmdSuccessfulVoiceClientConnect
+    #     )
 
-        return True
+    #     return True
 
     async def leaveClientEvent(self, message):
         """Client event, which is used to disconnect Groovester from a Voice Channel."""
 
+        #! Todo: Verify if user is in the same voice channel as Groovester.
         # Validate Groovester is in a voice channel.
         if not self.voiceClient == None:
             # If connected to a voice channel, disconnect Groovester.
@@ -76,7 +77,9 @@ class GroovesterEventHandler:
                     voiceChannel = message.author.voice.channel
                     self.voiceClient = await self.voiceClient.disconnect()
                     log.debug(
-                        "%s %s", InfoMessages._logDisconnectedFromVoiceChannel, voiceChannel.name
+                        "%s %s",
+                        InfoMessages._logDisconnectedFromVoiceChannel,
+                        voiceChannel.name,
                     )
                 except discord.ClientException as err:
                     log.error(err)
@@ -90,9 +93,7 @@ class GroovesterEventHandler:
 
             return False
 
-        await message.channel.send(
-            InfoMessages._sendLeaveCmdLeaveVoiceChannel
-        )
+        await message.channel.send(InfoMessages._sendLeaveCmdLeaveVoiceChannel)
         #! Todo: print the number of songs still in queue.
 
         return True
@@ -113,6 +114,7 @@ class GroovesterEventHandler:
             return False
 
         # Check domain is what is expected.
+        #! Todo: There are several YouTube domnains to check for.
         if not linkToYouTubeVideo.startswith("https://www.youtube.com/"):
             await message.channel.send(ErrorMessages._sendPlayCmdIncorrectDomain)
             return False
@@ -126,12 +128,8 @@ class GroovesterEventHandler:
         # Download the YouTube video.
         pytubeObj = downloadYouTubeAudio(linkToYouTubeVideo)
         if pytubeObj is None:
-            await message.channel.send(
-                ErrorMessages._sendPlayCmdFailedToDownloadAudio
-            )
+            await message.channel.send(ErrorMessages._sendPlayCmdFailedToDownloadAudio)
             return False
-
-        #! Todo: Escape special characters in the file's name.
 
         # Acquire lock and await signal.
         with self.writerCv:
@@ -145,7 +143,9 @@ class GroovesterEventHandler:
             # Enter mutual exclusion and add song to queue.
             self.listOfDownloadedSongsToPlay.append(pytubeObj)
             log.debug(
-                "%s %s", DebugMessages._logPlayCmdAddingVideoToQueue, pytubeObj.absPathToFile
+                "%s %s",
+                DebugMessages._logPlayCmdAddingVideoToQueue,
+                pytubeObj.absPathToFile,
             )
 
             self.numWriters = self.numWriters - 1
@@ -153,6 +153,10 @@ class GroovesterEventHandler:
             with self.readerCv:
                 self.readerCv.notify()
             self.writerCv.notify()
+
+        #! Todo: If Groovester is not already in the voice channel have it connect to the voice channel.
+        if self.voiceClient is None:
+            await self.joinClientEvent(message)
 
     #! Todo: I think it would be better to stream the song instead of download it to the filesystem.
     async def speakInVoiceChannel(self, absPathToVideoToPlay: str):
@@ -163,32 +167,32 @@ class GroovesterEventHandler:
         # #   'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
         #   'options': '-vn -filter:a "volume=0.75"'
         # }
-        #! Todo: Optimize settings for crisp audio streaming.
+        #! Todo: Optimize settings for audio streaming.
         self.audioSource = discord.FFmpegOpusAudio(
             executable="/usr/bin/ffmpeg", source=absPathToVideoToPlay
         )
 
         # Check that bot is in voice channel.
         if not self.voiceClient.is_connected():
-            log.error(
-                ErrorMessages._logNotConnectedToVoiceChannel
-            )
+            log.error(ErrorMessages._logNotConnectedToVoiceChannel)
             return False
 
         # Check if Groovester is already playing a song.
         if self.voiceClient.is_playing():
-            log.error(
-                ErrorMessages._logAlreadyPlayingAudio
-            )
+            log.error(ErrorMessages._logAlreadyPlayingAudio)
             return False
 
         try:
             log.debug(
-                "%s %s", DebugMessages._logAttemptingToPlayAudioSource, absPathToVideoToPlay
+                "%s %s",
+                DebugMessages._logAttemptingToPlayAudioSource,
+                absPathToVideoToPlay,
             )
             self.voiceClient.play(self.audioSource)
             log.debug(
-                "%s %s", DebugMessages._logSuccessfullyPlayedAudioSource, absPathToVideoToPlay,
+                "%s %s",
+                DebugMessages._logSuccessfullyPlayedAudioSource,
+                absPathToVideoToPlay,
             )
         except discord.ClientException as err:
             self.voiceClient.stop()
@@ -209,11 +213,10 @@ class GroovesterEventHandler:
                 return False
 
             self.voiceClient.stop()
+            self.voiceClient.disconnect()
 
         else:
-            await channel.send(
-                InfoMessages._sendStopCmdConditionsNotMet
-            )
+            await channel.send(InfoMessages._sendStopCmdConditionsNotMet)
             return False
 
         return True

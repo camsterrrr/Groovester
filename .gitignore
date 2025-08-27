@@ -1,5 +1,7 @@
 .env
+.venv
+archive
 Groovester.log
-src/__pycache__/
-tmp/
-.vscode/
+__pycache__
+tmp
+.vscode
