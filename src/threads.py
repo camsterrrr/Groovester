@@ -6,7 +6,13 @@ from time import sleep
 
 import discord
 
-from src.helpers import download_youtube_audio, file_in_use, VOICE_CLIENT
+from src.helpers import (
+    DownloadedMedia,
+    download_youtube_audio,
+    get_voice_client,
+    file_in_use,
+    remove_media_file,
+)
 
 log.getLogger(__name__)  # Set same logging parameters as client.py.
 
@@ -21,14 +27,13 @@ class ThreadWarden:
     """
 
     def __init__(self):
-        self.num_readers = 0  # C++ style locks 😉
-        self.num_writers = 0
-        self.reader_lock = Lock()
-        self.writer_lock = Lock()
-        self.reader_cv = Condition(lock=self.reader_lock)
-        self.writer_cv = Condition(lock=self.writer_lock)
-
-        self.song_queue = []
+        self.num_readers: int = 0  # C++ style locks 😉
+        self.num_writers: int = 0
+        self.reader_lock: Lock = Lock()
+        self.writer_lock: Lock = Lock()
+        self.reader_cv: Condition = Condition(lock=self.reader_lock)
+        self.writer_cv: Condition = Condition(lock=self.writer_lock)
+        self.song_queue: list[DownloadedMedia] = []
 
     def acquire_reader_lock(self) -> None:
         """
@@ -82,28 +87,31 @@ class ThreadWarden:
 
         return
 
-
     # Get signaled to play audio in a Discord channel.
     async def prepare_discord_audio(self):
         """
         Thread that is used to stream audio when Groovester is in a voice channel.
             If there is no song to play, it awaits a signal from client thread.
         """
-        log.debug("stream_discord_audio has been invoked")
-
+        # This thread will spin forever. It will only stream audio
+        #   when various conditions are met.
+        loop_count: int = 0
         while True:
-
             with self.reader_cv:
 
-                # This thread will spin forever. It will only stream audio
-                #   when various conditions are met.
-                while True:
+                loop_count += 1
+                log.debug(f"prepare_discord_audio loop #{loop_count}")
 
+                voice_client = get_voice_client()
+
+                try:
                     # * 1. Check that there are songs in the queue.
                     #! Todo: while true and replace whiles with if
                     #!  statements. Otherwise, checks can be by passed.
                     if len(self.song_queue) == 0:
-                        log.debug("Giving up this time slice because there are no songs in the queue.")
+                        log.debug(
+                            "Giving up this time slice because there are no songs in the queue."
+                        )
                         self.reader_cv.wait()
                         continue
 
@@ -111,7 +119,7 @@ class ThreadWarden:
                     #   channel audio.
                     #! Todo: User can get past this check, then crash
                     #!  the program by issuing the !leave command.
-                    elif VOICE_CLIENT is None:
+                    elif voice_client == None:
                         log.debug(
                             "Giving up this time slice because the bot's voice client has not been instantiated."
                         )
@@ -120,7 +128,7 @@ class ThreadWarden:
 
                     # * 3. Check that the bot is connected to voice
                     #   channel audio.
-                    elif not VOICE_CLIENT.is_connected():
+                    elif not voice_client.is_connected():
                         log.debug(
                             "Giving up this time slice because the bot is not connected to a voice channel."
                         )
@@ -128,7 +136,7 @@ class ThreadWarden:
                         continue
 
                     # * 4. Check if the bot is already playing a song.
-                    elif VOICE_CLIENT.is_playing():
+                    elif voice_client.is_playing():
                         log.debug(
                             "Giving up this time slice because the voice client is already playing a song."
                         )
@@ -145,83 +153,82 @@ class ThreadWarden:
                         continue
 
                     else:
-                        break
+                        log.debug("Passed all prepare_discord_audio checks.")
+                        # * Enter mutual exlcusion zone.
+                        self.num_readers += 1
 
-                # * Enter mutual exlcusion zone.
-                self.num_readers += 1
+                        # At this point, the Discord bot can safely start
+                        #   playing audio.
 
-                # At this point, Groovester can start playing audio.
+                        # Store the next song's file path and remove it
+                        #   from queue.
+                        path_to_file = self.song_queue.pop().path_to_file
+                        log.debug(
+                            f"Attempting to play the following media: {path_to_file}"
+                        )
 
-                # Store the song's file path and remove it from queue.
-                path_to_file = self.song_queue[0].path_to_file
-                self.song_queue = self.song_queue[1:]
+                        self.num_readers -= 1
+                        # * End of mutual exlcusion zone.
 
-                self.release_reader_lock()
-                # * End of mutual exlcusion zone.
+                        # Play song through the Discord voice channel.
+                        log.debug("Attempting to invoke stream_discord_audio")
+                        await self.stream_discord_audio(path_to_file)
+                        #! TODO: Look into alternatives for this sleep function call.
+                        #!  Allows child thread time to open file descriptor. Maybe
+                        #!  signal writerCv from speakInVoiceChannel thread?
+                        sleep(5)
 
-            # Play song through the Discord voice channel.
-            await self.stream_discord_sudio(path_to_file)
-            #! TODO: Look into alternatives for this sleep function call.
-            #!  Allows child thread time to open file descriptor. Maybe
-            #!  signal writerCv from speakInVoiceChannel thread?
-            sleep(5)
+                        #! TODO: Move this section to a worker thread that clears the
+                        #!  file system of songs not in the queue.
+                        # Delete the downloaded file after song ends.
+                        remove_media_file(path_to_file)
 
-            #! TODO: Move this section to a worker thread that clears the
-            #!  file system of songs not in the queue.
-            # Delete the downloaded file after song ends.
-            if os.path.exists(path_to_file):
-                try:
-                    os.remove(path_to_file)
-                    log.debug(
-                        f"Successfully removed the following file from the file system: {path_to_file}"
-                    )
-                except OSError as os_err:
+                except Exception as err:
                     log.error(
-                        f"OS exception, error occurred while trying to delete the audio file from the file system: {os_err}"
+                        "General exception, unexpected error caught while trying to "
                     )
 
-                    return
-
-        return
+        return  # This shouldn't ever be reached.
 
     #! TODO: I think it would be better to stream the song instead of
     #!  download it to the filesystem.
-    async def stream_discord_sudio(self, path_to_file: Path):
-        """Function used to allow Groovester to stream audio to the voice channel."""
+    async def stream_discord_audio(self, path_to_file: Path) -> None:
+        """
+        Function used to stream raw data to the Discord voice channel via
+            the Discord bot.
 
-        # await self.lastChannelCommandWasEntered.send("Let's play some audio!")
-        # ffmpegKwargs = { # Optimized settings for ffmpeg for audio streaming, https://stackoverflow.com/questions/75493436/why-is-the-ffmpeg-process-in-discordpy-terminating-without-playing-anything
-        # #   'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
-        #   'options': '-vn -filter:a "volume=0.75"'
-        # }
-        #! Todo: Optimize settings for audio streaming.
-        #! Todo: This works on linux, but what about Windows?
-        #! Todo: Update README with insturcitons to install FFMPEG.
-        audio_source = discord.FFmpegOpusAudio(
-            executable="/usr/bin/ffmpeg", source=path_to_file
-        )
+        Args:
+            path_to_file (Path): Path to media that user's want to stream
+                to the Discord voice channel.
+        """
+        log.debug("stream_discord_audio has been invoked.")
 
-        # Check that bot is in voice channel.
-        if not VOICE_CLIENT.is_connected():
-            log.error(
-                "Failed to play audio because the bot has not connected to a voice channel yet."
-            )
-
-            return
-
-        # Check if the bot is already playing a song.
-        if VOICE_CLIENT.is_playing():
-            log.error("Failed to play audio because the bot is already playing audio!")
-
-            return
+        voice_client = get_voice_client()
 
         try:
             log.debug(f"Attempting to play audio source: {path_to_file}")
-            VOICE_CLIENT.play(audio_source)
-            log.debug(f"Successfully streaming an audio source: {path_to_file}")
+
+            # await self.lastChannelCommandWasEntered.send("Let's play some audio!")
+            # ffmpegKwargs = { # Optimized settings for ffmpeg for audio streaming, https://stackoverflow.com/questions/75493436/why-is-the-ffmpeg-process-in-discordpy-terminating-without-playing-anything
+            # #   'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
+            #   'options': '-vn -filter:a "volume=0.75"'
+            # }
+            #! Todo: Optimize settings for audio streaming.
+            #! Todo: This works on linux, but what about Windows?
+            #! Todo: Update README with insturcitons to install FFMPEG.
+
+            # Covert the .mp4 file to a raw format for streaming.
+            audio_source = discord.FFmpegOpusAudio(
+                executable="/usr/bin/ffmpeg", source=path_to_file
+            )
+
+            # Have the bot stream the audio to the voice channel.
+            voice_client.play(audio_source)
+
+            log.debug(f"Successfully streamed the audio source: {path_to_file}")
 
         except discord.ClientException as d_err:
-            VOICE_CLIENT.stop()
+            voice_client.stop()
             log.error(
                 f"Discord client exception, error occurred while trying to play an audio source: {d_err}",
             )
@@ -229,12 +236,47 @@ class ThreadWarden:
             return
 
         except Exception as err:
-            VOICE_CLIENT.stop()
+            voice_client.stop()
             log.error(
                 f"General exception, unexpected error occurred while trying to play an audio source: {err}",
             )
 
             return
+
+        return
+
+    def add_media_to_queue(self, downloaded_media: DownloadedMedia) -> None:
+        """
+        Function that adds media to the queue. The queue is shared among
+            the different threads, so locks and condition variables are
+            used to control the execution of threads.
+
+        Args:
+            downloaded_media (DownloadedMedia): Object representing media
+                a user requested the bot to play.
+        """
+        # Acquire the writer lock and await signal.
+        with THREAD_WARDEN.writer_cv:
+
+            # Fall through, only if there are no active readers or writers.
+            while THREAD_WARDEN.num_readers or THREAD_WARDEN.num_writers:
+                THREAD_WARDEN.writer_cv.wait()
+
+            # * Enter mutual exclusion zone.
+            THREAD_WARDEN.num_writers += 1  # Lock
+
+            log.info(
+                f"Adding the following media to the song queue: {downloaded_media.path_to_file}",
+            )
+            THREAD_WARDEN.song_queue.append(downloaded_media)
+
+            THREAD_WARDEN.num_writers -= 1  # Unlock
+            # * Exit mutual exclusion zone.
+
+            # Signal any threads waiting to run.
+            with THREAD_WARDEN.reader_cv:
+                THREAD_WARDEN.reader_cv.notify()
+            THREAD_WARDEN.writer_cv.notify()
 
         return
 
@@ -325,4 +367,17 @@ class ThreadWarden:
 
     #     return
 
+
 THREAD_WARDEN: ThreadWarden = ThreadWarden()
+
+
+def get_thread_warden() -> ThreadWarden:
+    """
+    Function that returns a reference to the global THREAD_WARDEN variable
+        to other parts of the program.
+
+    Returns:
+        ThreadWarden: Object that controls the execution of threads within
+            the application.
+    """
+    return THREAD_WARDEN

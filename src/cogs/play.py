@@ -11,7 +11,7 @@ import discord
 from discord.ext import commands
 
 from src.helpers import download_youtube_audio, validate_url, validate_url_domain
-from src.threads import THREAD_WARDEN
+from src.threads import get_thread_warden
 
 
 log.getLogger(__name__)
@@ -81,30 +81,11 @@ class Play(commands.Cog):
 
             return
 
-        # Acquire lock and await signal.
-        with THREAD_WARDEN.writer_cv:
+        #! TODO: Invoke add song to queue logic.
+        get_thread_warden().add_media_to_queue(downloaded_media)
 
-            # Fall through, only if there are no active readers or writers.
-            while THREAD_WARDEN.num_readers or THREAD_WARDEN.num_writers:
-                THREAD_WARDEN.writer_cv.wait()
-
-            # * Enter mutual exclusion zone.
-            THREAD_WARDEN.num_writers += 1  # Lock
-
-            log.info(
-                f"Adding the following media to the song queue: {downloaded_media.path_to_file}",
-            )
-            THREAD_WARDEN.song_queue.append(downloaded_media)
-
-            THREAD_WARDEN.num_writers -= 1  # Unlock
-            # * Exit mutual exclusion zone.
-
-            # Signal any threads waiting to run.
-            with THREAD_WARDEN.reader_cv:
-                THREAD_WARDEN.reader_cv.notify()
-            THREAD_WARDEN.writer_cv.notify()
-
-        # #! TODO: If Groovester is not already in the voice channel have it connect to the voice channel.
+        # ! TODO: If Groovester is not already in the voice channel have
+        # !  it connect to the voice channel.
         # if not is_connected(ctx):
         #     await join(ctx)
 
