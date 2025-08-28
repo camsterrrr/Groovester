@@ -1,10 +1,3 @@
-"""
-`   Author: Cameron Oakley (Camsterrr)
-    Date: Aug 2025
-    Description: This file is dedicated to logic for joining Groovester to
-        a voice channel.
-"""
-
 import logging as log
 from time import sleep
 

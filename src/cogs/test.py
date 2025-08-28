@@ -1,11 +1,3 @@
-"""
-`   Author: Cameron Oakley (Camsterrr)
-    Date: Aug 2025
-    Description: This file is a test cog which allows us to seperate the
-        application logic. Most of the skeleton was provided by Discord.py
-        documentation. Follow link for official documentation:
-"""
-
 import logging as log
 
 import discord
@@ -74,6 +66,15 @@ class TestCog(commands.Cog):
         print(f"Author type: {type(ctx.message.author)}")
 
         return
+
+
+# @get_bot().tree.command(
+#     guild=get_guild_id(), 
+#     name="test", 
+#     description="Menu to manage the Groovester bot 😁"
+# )
+# async def test(interaction: discord.Interaction):
+#     print("Test slash command worked!")
 
 
 # import os
