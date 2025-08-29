@@ -3,7 +3,7 @@ import logging as log
 import discord
 from discord.ext import commands
 
-from src.helpers import is_connected
+from src.util.helpers import is_connected
 
 
 log.getLogger(__name__)
@@ -66,15 +66,6 @@ class TestCog(commands.Cog):
         print(f"Author type: {type(ctx.message.author)}")
 
         return
-
-
-# @get_bot().tree.command(
-#     guild=get_guild_id(), 
-#     name="test", 
-#     description="Menu to manage the Groovester bot 😁"
-# )
-# async def test(interaction: discord.Interaction):
-#     print("Test slash command worked!")
 
 
 # import os

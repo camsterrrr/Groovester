@@ -1,15 +1,15 @@
 import asyncio
 import logging as log
 
-from src.bot import run_discord_bot
-from src.helpers import setup_media_directory
+from src.bot import main_bot
+from src.util.helpers import setup_media_directory
 
 
 if __name__ == "__main__":
     """
-        This serves as the entry point to the Groovester application.
+    This serves as the entry point to the Groovester application.
     """
-    
+
     #! TODO: Allow user to specify log level. Add user-input parameters.
     log.basicConfig(
         datefmt="%Y-%m-%d %H:%M:%S",
@@ -26,13 +26,12 @@ if __name__ == "__main__":
             + "\n==================================================="
         )
         log.debug("Attempting to start Groovester!")
-        
+
         # Create Discord's client connection object.
-        asyncio.run(run_discord_bot())
-        
+        asyncio.run(main_bot())
+
         # Setup the directory where media will be sotred temporarily.
         setup_media_directory()
-        
 
     except Exception as err:
         log.error(

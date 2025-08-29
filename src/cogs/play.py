@@ -3,8 +3,8 @@ import logging as log
 import discord
 from discord.ext import commands
 
-from src.helpers import download_youtube_audio, validate_url, validate_url_domain
-from src.threads import get_thread_warden
+from src.util.helpers import download_youtube_audio, validate_url, validate_url_domain
+from src.util.threads import get_thread_warden
 
 
 log.getLogger(__name__)

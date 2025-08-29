@@ -10,9 +10,7 @@ from pytubefix import YouTube
 from validators import ValidationError, url
 
 
-log.getLogger(__name__)  # Set same logging parameters as client.py.
-
-VOICE_CLIENT: discord.VoiceClient = None
+log.getLogger(__name__)  # Set same logging parameters as main.py.
 
 
 class DownloadedMedia:
@@ -92,18 +90,6 @@ def download_youtube_audio(
     return downloaded_media
 
 
-def get_voice_client() -> discord.VoiceClient:
-    """
-    Function that returns a reference to the global VOICE_CLIENT variable
-        to other parts of the program.
-
-    Returns:
-        discord.VoiceClient: Object representing the state of the Discord
-            bot's voice client capabilities.
-    """
-    return VOICE_CLIENT
-
-
 def file_in_use(path_to_file: Path) -> bool:
     """
     Function that checks if a file has an active process reading or
@@ -141,22 +127,6 @@ def is_connected(ctx: commands.Context) -> bool:
     voice_client = discord.utils.get(ctx.bot.voice_clients, guild=ctx.guild)
 
     return voice_client and voice_client.is_connected()
-
-
-def set_voice_client(voice_client_operation: discord.VoiceClient) -> None:
-    """
-    Function that sets the voice channel global variable as the Discord
-        bot is connected and disconnected from voice channels.
-
-    Args:
-        voice_client_operation (discord.VoiceClient): Represents the
-            object returned after calling voice_channel.connect() or
-            voice_channel.disconnect().
-    """
-    global VOICE_CLIENT
-    VOICE_CLIENT = voice_client_operation
-
-    return
 
 
 #! TODO: Create a thread that goes through and verifies the videos stored

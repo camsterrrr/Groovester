@@ -30,10 +30,11 @@ bot_token = os.getenv("bot_token")
 ##############################   GETTERS   ###############################
 ##########################################################################
 
+
 def get_bot() -> commands.Bot:
     """
     Getter that returns a reference to the bot object.
-    
+
     Returns:
         commands.Bot:
     """
@@ -54,7 +55,7 @@ def get_guild_id() -> discord.Object:
     """
     Getter that returns a reference to the Guild ID specified in the .env
         file.
-        
+
     Returns:
         discord.Object:
     """
