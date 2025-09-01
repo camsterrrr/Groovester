@@ -3,6 +3,7 @@ import logging as log
 import discord
 from discord.ext import commands
 
+from src.models.bot_config import get_bot, get_guild_id
 from src.util.helpers import is_connected
 
 
@@ -57,7 +58,7 @@ class TestCog(commands.Cog):
 
     @commands.command()
     async def connected(self, ctx: commands.Context) -> None:
-        print(f"Groovester is coconnected to a voice channel: {is_connected(ctx)}")
+        print(f"Groovester is connected to a voice channel: {is_connected(ctx)}")
 
         return
 
@@ -66,6 +67,17 @@ class TestCog(commands.Cog):
         print(f"Author type: {type(ctx.message.author)}")
 
         return
+    
+
+@get_bot().tree.command(
+    name="test", 
+    description="Test slash command", 
+    guild=get_guild_id()
+)
+async def test_slash_(interaction: discord.Interaction) -> None:
+    await interaction.response.send_message("test slash", ephemeral=True)
+    
+    return 
 
 
 # import os

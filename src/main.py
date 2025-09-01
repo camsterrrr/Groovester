@@ -2,7 +2,12 @@ import asyncio
 import logging as log
 
 from src.bot import main_bot
-from src.util.helpers import setup_media_directory
+from src.util.file_system import setup_media_directory
+
+
+##########################################################################
+############################   ENTRY POINT   #############################
+##########################################################################
 
 
 if __name__ == "__main__":

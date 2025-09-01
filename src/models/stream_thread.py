@@ -6,11 +6,12 @@ from time import sleep
 
 import discord
 
-from src.util.helpers import remove_media_file
+from src.models.music_queue import get_music_queue
+from src.util.file_system import remove_media_file
 from src.util.threads import get_thread_warden
 
 log.getLogger(__name__)  # Set same logging parameters as main.py.
-voice_client: discord.VoiceClient = None
+VOICE_CLIENT: discord.VoiceClient = None
 
 
 ##########################################################################
@@ -24,9 +25,7 @@ def main_stream_thread() -> None:
         streaming songs via voice channels.
     """
     # Start various helper threads.
-    start_stream_thread = Thread(
-        target=run_stream_thread, args=()
-    )
+    start_stream_thread = Thread(target=run_stream_thread, args=())
 
     try:
         start_stream_thread.start()
@@ -70,18 +69,19 @@ async def prepare_discord_audio():
     loop_count: int = 0
     while True:
         thread_warden = get_thread_warden()
+        music_queue = get_music_queue()
         with thread_warden.reader_cv:
 
             loop_count += 1
             log.debug(f"prepare_discord_audio loop #{loop_count}")
 
-            # voice_client = get_voice_client() #? Legacy code
+            # VOICE_CLIENT = get_voice_client() #? Legacy code
 
             try:
                 # * 1. Check that there are songs in the queue.
-                #! Todo: while true and replace whiles with if
+                #! TODO: while true and replace whiles with if
                 #!  statements. Otherwise, checks can be by passed.
-                if len(thread_warden.song_queue) == 0:
+                if len(music_queue.queue) == 0:
                     log.debug(
                         "Giving up this time slice because there are no songs in the queue."
                     )
@@ -90,9 +90,9 @@ async def prepare_discord_audio():
 
                 # * 2. Check that the bot is connected to voice
                 #   channel audio.
-                #! Todo: User can get past this check, then crash
+                #! TODO: User can get past this check, then crash
                 #!  the program by issuing the !leave command.
-                elif voice_client == None:
+                elif VOICE_CLIENT is None:
                     log.debug(
                         "Giving up this time slice because the bot's voice client has not been instantiated."
                     )
@@ -100,8 +100,8 @@ async def prepare_discord_audio():
                     continue
 
                 # * 3. Check that the bot is connected to voice
-                #   channel audio.
-                elif not voice_client.is_connected():
+                # *     channel audio.
+                elif not VOICE_CLIENT.is_connected():
                     log.debug(
                         "Giving up this time slice because the bot is not connected to a voice channel."
                     )
@@ -109,7 +109,7 @@ async def prepare_discord_audio():
                     continue
 
                 # * 4. Check if the bot is already playing a song.
-                elif voice_client.is_playing():
+                elif VOICE_CLIENT.is_playing():
                     log.debug(
                         "Giving up this time slice because the voice client is already playing a song."
                     )
@@ -117,17 +117,18 @@ async def prepare_discord_audio():
                     continue
 
                 # * 5. Check if there are active reader or writer
-                #   threads.
+                # *     threads.
                 elif thread_warden.num_readers or thread_warden.num_writers:
                     log.debug(
-                        "Giving up this time slice because there is an active an reader or writer thread."
+                        "Giving up this time slice because there is an active reader or writer thread."
                     )
                     thread_warden.reader_cv.wait()
                     continue
 
                 else:
                     log.debug("Passed all prepare_discord_audio checks.")
-                    # * Enter mutual exlcusion zone.
+
+                    # * Enter mutual exclusion zone.
                     thread_warden.num_readers += 1
 
                     # At this point, the Discord bot can safely start
@@ -135,19 +136,15 @@ async def prepare_discord_audio():
 
                     # Store the next song's file path and remove it
                     #   from queue.
-                    path_to_file = thread_warden.song_queue.pop().path_to_file
+                    path_to_file = music_queue.play_next_in_queue().path_to_file
                     log.debug(f"Attempting to play the following media: {path_to_file}")
 
-                    thread_warden.num_readers -= 1
-                    # * End of mutual exlcusion zone.
+                    # * End of mutual exclusion zone.
+                    thread_warden.release_reader_lock()
 
                     # Play song through the Discord voice channel.
                     log.debug("Attempting to invoke stream_discord_audio")
                     await stream_discord_audio(path_to_file)
-                    #! TODO: Look into alternatives for this sleep function call.
-                    #!  Allows child thread time to open file descriptor. Maybe
-                    #!  signal writerCv from speakInVoiceChannel thread?
-                    sleep(5)
 
                     #! TODO: Move this section to a worker thread that clears the
                     #!  file system of songs not in the queue.
@@ -155,7 +152,9 @@ async def prepare_discord_audio():
                     remove_media_file(path_to_file)
 
             except Exception as err:
-                log.error("General exception, unexpected error caught while trying to ")
+                log.error(
+                    f"General exception, unexpected error caught while trying to {err}"
+                )
 
     return  # This shouldn't ever be reached.
 
@@ -183,7 +182,7 @@ async def stream_discord_audio(path_to_file: Path) -> None:
         # }
         #! TODO: Optimize settings for audio streaming.
         #! TODO: This works on linux, but what about Windows?
-        #! TODO: Update README with insturcitons to install FFMPEG.
+        #! TODO: Update README with instructions to install FFMPEG.
         #! TODO: I think it would be better to stream the song instead of
         #!  download it to the filesystem.
 
@@ -192,11 +191,16 @@ async def stream_discord_audio(path_to_file: Path) -> None:
             executable="/usr/bin/ffmpeg", source=path_to_file
         )
         # Have the bot stream the audio to the voice channel.
-        voice_client.play(audio_source)
+        VOICE_CLIENT.play(audio_source)
         log.debug(f"Successfully streamed the audio source: {path_to_file}")
 
+        #! TODO: Look into alternatives for this sleep function call.
+        #!  Allows child thread time to open file descriptor. Maybe
+        #!  signal writerCv from speakInVoiceChannel thread?
+        sleep(5)
+
     except discord.ClientException as d_err:
-        voice_client.stop()
+        VOICE_CLIENT.stop()
         log.error(
             f"Discord client exception, error occurred while trying to play an audio source: {d_err}",
         )
@@ -204,7 +208,7 @@ async def stream_discord_audio(path_to_file: Path) -> None:
         return
 
     except Exception as err:
-        voice_client.stop()
+        VOICE_CLIENT.stop()
         log.error(
             f"General exception, unexpected error occurred while trying to play an audio source: {err}",
         )
