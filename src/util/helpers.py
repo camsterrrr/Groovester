@@ -17,7 +17,7 @@ log.getLogger(__name__)  # Set same logging parameters as main.py.
 ##########################################################################
 
 
-class DownloadedMedia():
+class DownloadedMedia:
     """
     Object that maintains reference to relevant information for song
         requests.
