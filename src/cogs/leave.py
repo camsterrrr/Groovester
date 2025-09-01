@@ -1,17 +1,10 @@
-"""
-`   Author: Cameron Oakley (Camsterrr)
-    Date: Aug 2025
-    Description: This file is dedicated to logic for removing Groovester
-        from the voice channel it's connected to.
-"""
-
 import logging as log
-import random
 
 import discord
 from discord.ext import commands
 
-from src.helpers import is_connected, set_voice_client
+from src.util.helpers import is_connected
+from src.models.stream_thread import set_voice_client
 
 
 log.getLogger(__name__)

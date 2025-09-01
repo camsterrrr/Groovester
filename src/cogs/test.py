@@ -1,17 +1,10 @@
-"""
-`   Author: Cameron Oakley (Camsterrr)
-    Date: Aug 2025
-    Description: This file is a test cog which allows us to seperate the
-        application logic. Most of the skeleton was provided by Discord.py
-        documentation. Follow link for official documentation:
-"""
-
 import logging as log
 
 import discord
 from discord.ext import commands
 
-from src.helpers import is_connected
+from src.models.bot_config import get_bot, get_guild_id
+from src.util.helpers import is_connected
 
 
 log.getLogger(__name__)
@@ -65,7 +58,7 @@ class TestCog(commands.Cog):
 
     @commands.command()
     async def connected(self, ctx: commands.Context) -> None:
-        print(f"Groovester is coconnected to a voice channel: {is_connected(ctx)}")
+        print(f"Groovester is connected to a voice channel: {is_connected(ctx)}")
 
         return
 
@@ -74,6 +67,17 @@ class TestCog(commands.Cog):
         print(f"Author type: {type(ctx.message.author)}")
 
         return
+    
+
+@get_bot().tree.command(
+    name="test", 
+    description="Test slash command", 
+    guild=get_guild_id()
+)
+async def test_slash_(interaction: discord.Interaction) -> None:
+    await interaction.response.send_message("test slash", ephemeral=True)
+    
+    return 
 
 
 # import os

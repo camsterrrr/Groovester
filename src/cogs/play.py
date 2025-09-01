@@ -1,17 +1,9 @@
-"""
-`   Author: Cameron Oakley (Camsterrr)
-    Date: Aug 2025
-    Description: This file is dedicated to logic for removing Groovester
-        from the voice channel it's connected to.
-"""
-
 import logging as log
 
-import discord
 from discord.ext import commands
 
-from src.helpers import download_youtube_audio, validate_url, validate_url_domain
-from src.threads import get_thread_warden
+from src.util.helpers import download_youtube_audio, validate_url, validate_url_domain
+from src.models.music_queue import get_music_queue
 
 
 log.getLogger(__name__)
@@ -82,7 +74,7 @@ class Play(commands.Cog):
             return
 
         #! TODO: Invoke add song to queue logic.
-        get_thread_warden().add_media_to_queue(downloaded_media)
+        get_music_queue().add_to_queue(downloaded_media)
 
         # ! TODO: If Groovester is not already in the voice channel have
         # !  it connect to the voice channel.
