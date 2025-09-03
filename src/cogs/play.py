@@ -8,6 +8,7 @@ from src.models.bot_config import get_bot, get_guild_id
 from src.models.music_queue import get_music_queue
 from src.models.stream_thread import get_voice_client
 from src.util.helpers import download_youtube_audio, validate_url, validate_url_domain
+from src.util.threads import get_thread_warden
 
 
 log.getLogger(__name__)
@@ -226,6 +227,8 @@ async def play_command_logic(media_url: str, requestor: discord.Member) -> int:
     # Connect the bot to the requestors voice channel if it's not already
     #   connected to one.
     if get_voice_client() is None:
-        join_command_logic(requestor)
+        await join_command_logic(requestor)
+
+    get_thread_warden().notify_threads()
 
     return ret_val

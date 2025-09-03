@@ -16,22 +16,18 @@ log.getLogger(__name__)  # Set same logging parameters as main.py.
 ##########################################################################
 
 
-class MusicQueue():
+class MusicQueue:
     """
     Maintains references to the music queue used by the application.
     """
-    
+
     def __init__(self):
         self.queue: list[DownloadedMedia] = []
 
-
-    def add_to_queue(
-        self,
-        downloaded_media: DownloadedMedia
-    ) -> None:
+    def add_to_queue(self, downloaded_media: DownloadedMedia) -> None:
         """
         Function that adds media to the music queue. The queue is shared among
-            the different threads, so locks and condition variables are used 
+            the different threads, so locks and condition variables are used
             to control the execution of threads.
 
         Args:
@@ -46,24 +42,22 @@ class MusicQueue():
             f"Adding the following media to the song queue: {downloaded_media.path_to_file}",
         )
         self.queue.append(downloaded_media)
-            
+
         # * Exit mutual exclusion zone.
         thread_warden.release_writer_lock()
 
         return
-    
-    
+
     def play_next_in_queue(self) -> DownloadedMedia:
         """
         Function that pops the heads of the queue and returns the object
             removed.
 
         Returns:
-            DownloadedMedia: 
+            DownloadedMedia:
         """
 
-        return self.song_queue.pop()
-
+        return self.queue.pop()
 
     #! TODO: This function doesn't actually check the queue yet...
     def delete_song_in_queue(self):
@@ -113,7 +107,6 @@ class MusicQueue():
             sleep(10)
 
         return
-
 
     # def queued_songs_are_exist(self):
     #     """

@@ -29,7 +29,7 @@ class ThreadWarden:
             or writers.
         """
         with self.reader_cv:
-            while self.num_readers or self.num_writers or self.song_queue.size() == 0:
+            while self.num_readers or self.num_writers:
                 self.reader_cv.wait()
             self.num_readers += 1
 
@@ -49,6 +49,19 @@ class ThreadWarden:
 
             # * Enter mutual exclusion zone.
             self.num_writers += 1  # Lock
+
+        return
+
+    def notify_threads(self) -> None:
+        """
+        Function to notify any threads waiting to be signaled.
+        """
+        # Signal any threads waiting to run.
+        with self.writer_cv:
+            self.writer_cv.notify()
+
+        with self.reader_cv:
+            self.reader_cv.notify()
 
         return
 
@@ -83,7 +96,6 @@ class ThreadWarden:
             self.reader_cv.notify()
 
         return
-
 
     # def add_media_to_queue(self, downloaded_media: DownloadedMedia) -> None:
     #     """

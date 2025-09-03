@@ -96,7 +96,7 @@ async def prepare_discord_audio():
                     log.debug(
                         "Giving up this time slice because the bot's voice client has not been instantiated."
                     )
-                    self.reader_cv.wait()
+                    thread_warden.reader_cv.wait()
                     continue
 
                 # * 3. Check that the bot is connected to voice
@@ -186,6 +186,8 @@ async def stream_discord_audio(path_to_file: Path) -> None:
         #! TODO: I think it would be better to stream the song instead of
         #!  download it to the filesystem.
 
+        #! TODO: User parameter to specify the path to ffmpeg.
+        # ? which ffmpeg to find where stored. -> ffmpeg or ffmpeg.exe
         # Covert the .mp4 file to a raw format for streaming.
         audio_source = discord.FFmpegOpusAudio(
             executable="/usr/bin/ffmpeg", source=path_to_file

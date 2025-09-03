@@ -90,9 +90,8 @@ async def on_ready() -> None:
     """
     log.info("Groovester started Successfully!")
     print("Groovester started Successfully!")
-    
+
     await get_bot().tree.sync(guild=get_guild_id())
-    
 
     # Run worker threads.
     main_stream_thread()
