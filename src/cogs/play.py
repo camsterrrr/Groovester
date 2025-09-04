@@ -53,6 +53,9 @@ class Play(commands.Cog):
         """
         This command triggers the bot to download a song and place it in
             the queue.
+
+        Args:
+            ctx {commands.Context): The command that triggered the event.
         """
         # Input validation: The command should be in the format of:
         #   '!play https://youtube.com/arbitrary/url'
@@ -158,7 +161,7 @@ async def play_slash(interaction: discord.Interaction) -> None:
 
 
 ##########################################################################
-#########################   CORE LOGIC: LEAVE   ##########################
+#########################   CORE LOGIC: PLAY   ###########################
 ##########################################################################
 
 

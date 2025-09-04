@@ -50,6 +50,9 @@ class Join(commands.Cog):
         Command that listens for requests for the Discord bot to be
             connected to a voice channel and acts as one of two entry
             points to the join_command_logic function.
+
+        Args:
+            ctx {commands.Context): The command that triggered the event.
         """
         res: int = await join_command_logic(ctx.message.author)
 

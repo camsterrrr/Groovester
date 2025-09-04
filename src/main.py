@@ -31,10 +31,12 @@ def check_ffmpeg_path(ffmpeg_path: Path) -> bool:
     """
     if not exists(ffmpeg_path):
         log.error(
-            "FFMMPEG binary doesn't exist on the file system. Please check the path parameter you specified."
+            "FFMMPEG binary doesn't exist on the file system. "
+            "Please check the path parameter you specified."
         )
         print(
-            "FFMMPEG binary doesn't exist on the file system. Please check the path parameter you specified."
+            "FFMMPEG binary doesn't exist on the file system."
+            "Please check the path parameter you specified."
         )
 
         return False
@@ -57,7 +59,12 @@ def configure_argparse() -> Namespace:
         "--command_output",
         choices=[True, False],
         default=False,
-        help="Whether or not you want the bot to send messages in response to regular commands (not slash commands - these respond ephemerally). Enabling this means the bot would send messages that notify everyone in the server.",
+        help=(
+            "Whether or not you want the bot to send messages in response "
+            "to regular commands (not slash commands - these respond "
+            "ephemerally). Enabling this means the bot would send "
+            "messages that notify everyone in the server."
+        ),
         type=bool,
     )
     parser.add_argument(
@@ -108,9 +115,6 @@ def configure_logging(user_specified_level: str = "info"):
 
 
 if __name__ == "__main__":
-    """
-    This serves as the entry point to the Groovester application.
-    """
     # Try to start the Groovester's client thread.
     try:
         # Parse user specified parameters
@@ -133,9 +137,6 @@ if __name__ == "__main__":
 
         # Setup the directory where media will be stored temporarily.
         setup_media_directory(user_args.media)
-        import os
-
-        print(os.getcwd())
 
         # Create Discord's client connection object.
         run(main_bot())

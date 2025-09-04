@@ -58,6 +58,31 @@ def run_stream_thread() -> None:
 ##########################################################################
 
 
+async def pause_discord_audio() -> None:
+    """
+    Function that pauses the voice client while playing music.
+    """
+    try:
+        log.debug(f"Attempting to pause the voice client.")
+
+        VOICE_CLIENT.pause()
+        log.info(f"Successfully paused the voice client.")
+
+    except discord.ClientException as d_err:
+        VOICE_CLIENT.stop()
+        log.error(
+            f"Discord client exception, error occurred while trying to pause Discord audio: {d_err}",
+        )
+
+    except Exception as err:
+        VOICE_CLIENT.stop()
+        log.error(
+            f"General exception, unexpected error occurred while trying to pause Discord audio: {err}",
+        )
+
+    return
+
+
 # Get signaled to play audio in a Discord channel.
 async def prepare_discord_audio():
     """
@@ -70,8 +95,8 @@ async def prepare_discord_audio():
     while True:
         thread_warden = get_thread_warden()
         music_queue = get_music_queue()
-        with thread_warden.reader_cv:
 
+        with thread_warden.reader_cv:
             loop_count += 1
             log.debug(f"prepare_discord_audio loop #{loop_count}")
 
@@ -139,8 +164,8 @@ async def prepare_discord_audio():
                     path_to_file = music_queue.play_next_in_queue().path_to_file
                     log.debug(f"Attempting to play the following media: {path_to_file}")
 
+                    thread_warden.num_readers -= 1
                     # * End of mutual exclusion zone.
-                    thread_warden.release_reader_lock()
 
                     # Play song through the Discord voice channel.
                     log.debug("Attempting to invoke stream_discord_audio")
@@ -149,7 +174,8 @@ async def prepare_discord_audio():
                     #! TODO: Move this section to a worker thread that clears the
                     #!  file system of songs not in the queue.
                     # Delete the downloaded file after song ends.
-                    remove_media_file(path_to_file)
+                    # remove_media_file(path_to_file)
+                    #! TODO: Can't delete because the file is in use.
 
             except Exception as err:
                 log.error(
@@ -157,6 +183,58 @@ async def prepare_discord_audio():
                 )
 
     return  # This shouldn't ever be reached.
+
+
+async def resume_discord_audio() -> None:
+    """
+    Function that resumes the voice client's audio sources from where it
+        was paused.
+    """
+    try:
+        log.debug(f"Attempting to resume the voice client.")
+
+        VOICE_CLIENT.resume()
+        log.info(f"Successfully resumed the voice client.")
+
+    except discord.ClientException as d_err:
+        VOICE_CLIENT.stop()
+        log.error(
+            f"Discord client exception, error occurred while trying to resume Discord audio: {d_err}",
+        )
+
+    except Exception as err:
+        VOICE_CLIENT.stop()
+        log.error(
+            f"General exception, unexpected error occurred while trying to resume Discord audio: {err}",
+        )
+
+    return
+
+
+async def stop_discord_audio() -> None:
+    """
+    Function that stops the voice client from playing music. This stops
+        the audio source and it can't be resumed.
+    """
+    try:
+        log.debug(f"Attempting to stop the voice client.")
+
+        VOICE_CLIENT.stop()
+        log.info(f"Successfully stopped the voice client.")
+
+    except discord.ClientException as d_err:
+        VOICE_CLIENT.stop()
+        log.error(
+            f"Discord client exception, error occurred while trying to stop Discord audio: {d_err}",
+        )
+
+    except Exception as err:
+        VOICE_CLIENT.stop()
+        log.error(
+            f"General exception, unexpected error occurred while trying to stop Discord audio: {err}",
+        )
+
+    return
 
 
 async def stream_discord_audio(path_to_file: Path) -> None:
