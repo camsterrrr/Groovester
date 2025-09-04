@@ -50,6 +50,9 @@ class Join(commands.Cog):
         Command that listens for requests for the Discord bot to be
             connected to a voice channel and acts as one of two entry
             points to the join_command_logic function.
+
+        Args:
+            ctx {commands.Context): The command that triggered the event.
         """
         res: int = await join_command_logic(ctx.message.author)
 
@@ -88,7 +91,7 @@ class Join(commands.Cog):
 
 
 ##########################################################################
-########################   JOIN SLASH COMMAND   ##########################
+########################   SLASH COMMAND: JOIN   #########################
 ##########################################################################
 
 
@@ -131,7 +134,7 @@ async def join_slash(interaction: discord.Interaction) -> None:
 
 
 ##########################################################################
-##########################   CORE JOIN LOGIC   ###########################
+##########################   CORE LOGIC: JOIN   ##########################
 ##########################################################################
 
 
@@ -145,13 +148,13 @@ async def join_command_logic(requestor: discord.Member) -> int:
         requestor (discord.Member): The author of the request.
 
     Returns:
-        int: Result of the join operation.
+        int: Result of the join command.
         - 0: No errors when joining.
         - 1: Bot is already connected to a voice channel.
         - 2: Message author is not connected to a voice channel.
         - 3: Exception occurred when trying to connect to voice channel.
     """
-    ret_val = 0
+    ret_val: int = 0
 
     # Validate message author is connected to a voice channel.
     if requestor.voice is not None:

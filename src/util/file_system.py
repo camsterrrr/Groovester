@@ -106,7 +106,7 @@ def remove_media_file(media_path: Path) -> bool:
 
 #! TODO: Create a thread that goes through and verifies the videos stored
 #!  in /tmp are still there. Compare against list.
-def setup_media_directory(media_path=Path("./media/")) -> bool:
+def setup_media_directory(media_path: Path = Path("./media/")) -> bool:
     """
     This function is invoked when the Discord bot application starts. It
         creates a directory where media can be stored.
